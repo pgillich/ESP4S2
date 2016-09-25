@@ -1,0 +1,19 @@
+{	"extensionName": "ESP4S2 (ESP8266 for Scratch 2)",
+	"extensionPort": 58266,
+	"blockSpecs": [
+		[" ", "Set network %s / %n", "initNet", "192.168.10.0", "24"],
+		[" ", "%m.execWait On device %s: set pin %n as %m.mode", "pinMode", "E", "tank-tower", 4, "Digital Input"],
+		[" ", "%m.execWait On device %s: digital write pin %n %m.highLow", "digitalWrite", "E", "tank-tower", 4, "High"],
+		[" ", "%m.execWait On device %s: analog write pin %n value %n", "analogWrite", "E", "tank-tower", 5, 100],
+		[" ", "%m.execWait On device %s: analog write pin pair (%n %n ) value %n", "analogPairWrite", "E", "tank-tower", 5, 6, 0],
+		[" ", "%m.execWait On device %s: servo write pin %n degrees %n", "servoWrite", "E", "tank-tower", 5, 180],
+		["b", "On device %s: digital read pin %n", "digitalRead", "tank-tower", 0],
+		["r", "On device %s: analog read pin %n", "analogRead", "tank-tower", 0],
+	],
+	"menus": {
+		"mode": ["Digital Input", "Digital Output","Analog Input","Analog Output(PWM)","Servo"],
+		"highLow": ["High", "Low"],
+		"execWait": ["E", "W"],
+	},
+	
+}
