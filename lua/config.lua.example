@@ -1,0 +1,48 @@
+WIFI_CFG_NAME="Home"
+
+ROBOREMO_PORT=9876
+
+MAC_config={
+	["Home"]={
+		["5ccf7f0fc2cc"]={name="tank-tower",
+		wifiMode=wifi.STATION,
+		ip="192.168.10.102",
+		static_ip=false,
+		net_type=net.UDP,
+		listen={port=ROBOREMO_PORT},
+		target={addr="192.168.10.103", port=ROBOREMO_PORT},
+    devices={["hcsr"]={["absorber"]=3,["tmr_ms"]=500}}
+		},
+		["18fe34d40583"]={name="tank-chassis",
+		wifiMode=wifi.STATION,
+		ip="192.168.10.103",
+		static_ip=false,
+		net_type=net.UDP,
+		listen={port=ROBOREMO_PORT},
+		target={addr="", port=ROBOREMO_PORT},
+    devices={}
+		}
+	},
+	["Demo"]={
+		["5ccf7f0fc2cc"]={name="tank-tower",
+		wifiMode=wifi.STATION,
+		ip="192.168.11.102",
+		static_ip=false,
+		netmask="255.255.255.0",
+		net_type=net.UDP,
+		listen={port=ROBOREMO_PORT},
+		target={addr="192.168.11.103", port=ROBOREMO_PORT},
+    devices={}
+		},
+		["18fe34d40583"]={name="tank-chassis",
+		wifiMode=wifi.SOFTAP,
+		ip="192.168.11.103",
+		static_ip=false,
+		netmask="255.255.255.0",
+		net_type=net.UDP,
+		listen={port=ROBOREMO_PORT},
+		target={addr="", port=ROBOREMO_PORT},
+    devices={}
+		}	
+	}
+}

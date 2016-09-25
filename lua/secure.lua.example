@@ -1,0 +1,5 @@
+-- NEVER SHARE THIS FILE!
+WIFI_CFG={
+	["Home"]={ssid="<SSID_HOME>", pwd="<PASSWORD_HOME>"},
+	["Demo"]={ssid="<SSID_DEMO>", pwd="<PASSWORD_DEMO>", auth=wifi.WPA_WPA2_PSK}
+}
