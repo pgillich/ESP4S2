@@ -5,8 +5,8 @@
 --   http://www.wemos.cc/Products/d1_mini.html
 -- Sensor pins:
 --   ECHO: D8 (GPIO15) pulled down by 10k (R2) on WeMos D1 mini
---	   R1 between ECHO and D8 as voltage divider: 4k7, see more:
---	   http://www.modmypi.com/blog/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi
+--     R1 between ECHO and D8 as voltage divider: 4k7, see more:
+--     http://www.modmypi.com/blog/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi
 --   TRIG: D0 (GPIO16)
 --     Can only be used as gpio read/write. No support for open-drain/interrupt/pwm/i2c/ow.
 --   VCC: 5V

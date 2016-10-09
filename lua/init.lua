@@ -24,7 +24,6 @@ end
 MAC_ID=string.gsub(MAC_ID,":","")
 
 connListener=nil
-connSender=nil
 
 -- MAC address dependent config
 dofile("config.lua")
@@ -38,7 +37,6 @@ else
 		static_ip=false,
 		net_type=0,
 		listen={port=0},
-		target={ip="",port=0},
 		devices={}
 	}
 end
@@ -77,6 +75,17 @@ PINS_state={
 	[8]={m=-1,v=-1},
 	[11]={m=-1,v=-1},
 	[12]={m=-1,v=-1},
+}
+
+TANK_CONST={
+	["TLA"]={a=-100,b=100,c=0,d=1},
+	["TLB"]={a=100,b=100,c=0,d=0},
+	["TRA"]={a=-100,b=100,c=0,d=0},
+	["TRB"]={a=100,b=100,c=0,d=-1},
+	["BLA"]={a=-100,b=100,c=0,d=0},
+	["BLB"]={a=100,b=100,c=0,d=1},
+	["BRA"]={a=-100,b=100,c=0,d=-1},
+	["BRB"]={a=100,b=100,c=0,d=0}
 }
 
 local function csplit(str,sep)
@@ -127,9 +136,56 @@ function analogWrite(pin,val)
 	return resp
 end
 
+function analogPairWrite(pin1,pin2,val)
+	local resp=""
+	if val>0 then
+		resp=resp..analogWrite(pin1,val)
+		resp=resp..analogWrite(pin2,0)
+	elseif val<0 then
+		resp=resp..analogWrite(pin1,0)
+		resp=resp..analogWrite(pin2,0-val)
+	else
+		resp=resp..analogWrite(pin1,0)
+		resp=resp..analogWrite(pin2,0)
+	end
+	return resp
+end
+
+function tankWrite(pin1,pin2,pin3,pin4,x,y)
+	local resp=""
+	local idx=""
+	if y>=0 then
+		idx=idx.."T"
+	else
+		idx=idx.."B"
+	end
+	if x>=0 then
+		idx=idx.."R"
+	else
+		idx=idx.."L"
+	end  
+	local T=TANK_CONST[idx.."A"]
+	local v=(T.d*x*y+T.a*x+T.b*y+T.c)/100
+	resp=resp..analogPairWrite(pin1,pin2,v)
+	T=TANK_CONST[idx.."B"]
+	v=(T.d*x*y+T.a*x+T.b*y+T.c)/100
+	resp=resp..analogPairWrite(pin3,pin4,v)
+	return resp
+end
+
 function resetAll()
 	local resp=""
-	
+	for pin,mv in pairs(PINS_state) do
+		local m=mv["m"]
+		local v=mv["v"]
+		if type(m)~=nil then
+			if m==MODE_OUTPUT then
+				resp=resp..digitalWrite(pin,0)
+			elseif m==MODE_PWM then
+				resp=resp..analogWrite(pin,0)
+			end
+		end
+	end	
 	return resp
 end
 
@@ -159,7 +215,7 @@ function poll()
 		local v=mv["v"]
 		if type(m)~=nil and (m==MODE_INPUT or m==MODE_ANALOG) then
 			if string.len(data)>0 then
-				data=data..";"
+				data=data.."\n"
 			end
 			data=data..tostring(pin).." "..tostring(v)
 		end
@@ -171,6 +227,17 @@ function exeCmd(st)
 	local resp=""
 	print("> "..st)
 	local command=csplit(st," ")
+	if #command>1 then
+		if config.name==command[1] then
+			table.remove(command,1)
+		else
+			for m,cfg in pairs(MAC_config[WIFI_CFG_NAME]) do
+				if cfg.name==command[1] then
+					return resp
+				end
+			end 
+		end
+	end
 	if #command==1 then
 		local cmd=command[1]
 		if cmd=="reset_all" then
@@ -205,16 +272,12 @@ function exeCmd(st)
 		local pin2=tonumber(command[3])
 		local val=tonumber(command[4])
 		if cmd=="analogPairWrite" then
-			if val>0 then
-				resp=analogWrite(pin1,val)
-				resp=analogWrite(pin2,0)
-			elseif val<0 then
-				resp=analogWrite(pin1,0)
-				resp=analogWrite(pin2,0-val)
-			else
-				resp=analogWrite(pin1,0)
-				resp=analogWrite(pin2,0)
-			end
+			resp=analogPairWrite(pin1,pin2,val)
+		end
+	elseif #command==7 then
+		local cmd=command[1]
+		if cmd=="tankWrite" then
+			resp=tankWrite(tonumber(command[2]),tonumber(command[3]),tonumber(command[4]),tonumber(command[5]),tonumber(command[6]),tonumber(command[7]))
 		end
 	else
 		print("ERR: unknown command")
@@ -234,10 +297,11 @@ function readDevices()
 end
 
 function sendData(sck,data)
-	if string.len(data)==0 then
-		data=" "
-	end
+--	if string.len(data)==0 then
+--		data=" "
+--	end
 	print("Send back data: "..data)
+	data=data.."\n"
 	sck:send(data)
 end
 
@@ -250,7 +314,7 @@ function receiveData(sck,data)
 		local cmd=string.sub(recv_cmd,1,a-1)
 		local respA=exeCmd(cmd)
 		if string.len(resp)>0 then
-			resp=resp..";"
+			resp=resp.."\n"
 		end
 		resp=resp..respA
 		recv_cmd=string.sub(recv_cmd,a+1,string.len(recv_cmd))
@@ -348,7 +412,7 @@ function setupDevices()
 		if dev=="hcsr" then
 			dofile("hcsr.lua") 
 			device_hcsr=hcsr.init(params["pin_trig"], params["pin_echo"], params["absorber"], params["tmr_id"], params["tmr_ms"]) 
-			PINS_state[device_hcsr.trig]["m"]=MODE_OUTPUT
+			PINS_state[device_hcsr.trig]["m"]=MODE_UNAVAILABLE
 			PINS_state[device_hcsr.echo]["m"]=MODE_ANALOG
 			device_hcsr.start()
 		end

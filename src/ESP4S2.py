@@ -178,7 +178,7 @@ class EspSender(threading.Thread):
             else:
                 sys.stdout.write(':')
             self.last_send = -1
-            for value_pair in data.split(";"):
+            for value_pair in data.split("\n"):
                 pin_value = value_pair.split(" ")
                 if len(pin_value) == 2:
                     pin, value = pin_value
@@ -433,6 +433,11 @@ def makeScratchHandler(conf):
             device.putIn(command, [pin1, pin2], exec_wait)
             return self.conf.RESPONSE_OK
 
+        def tankWrite(self, device, pin1, pin2, pin3, pin4, valueX, valueY, exec_wait):
+            command = "tankWrite "+str(pin1)+" "+str(pin2)+" "+str(pin3)+" "+str(pin4)+" "+str(valueX)+" "+str(valueY)
+            device.putIn(command, [pin1, pin2], exec_wait)
+            return self.conf.RESPONSE_OK
+
         def servoWrite(self, device, pin, value, exec_wait):
             command = "servoWrite " + str(pin) + " " + str(value)
             device.putIn(command, [pin], exec_wait)
@@ -529,6 +534,9 @@ def makeScratchHandler(conf):
                         elif cmd == "analogPairWrite":
                             resp_body = self.analogPairWrite(device, pin, int(
                                 command[5]), int(command[6]), exec_wait)
+                        elif cmd == "tankWrite":
+                            resp_body = self.tankWrite(device, pin, int(
+                                command[5]), int(command[6]), int(command[7]), int(command[8]), int(command[9]), exec_wait)
                         elif cmd == "servoWrite":
                             resp_body = self.servoWrite(
                                 device, pin, int(command[5]), exec_wait)
@@ -612,14 +620,12 @@ def main():
     conf = EspConfig()
 
     try:
-        # Create a web server and define the handler to manage the
-        # incoming request
         server = HTTPServer((conf.SCRATCH_IP, conf.SCRATCH_PORT), makeScratchHandler(conf))
         print "Listening httpserver on " + str(conf.SCRATCH_IP) + ":" + str(conf.SCRATCH_PORT)
 
         conf.espNetHandler = EspNetHandler(conf)
         conf.espNetHandler.start()
-        # Wait forever for incoming htto requests
+
         server.serve_forever()
 
     except KeyboardInterrupt:
