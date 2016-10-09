@@ -40,30 +40,41 @@ Example setups:
                    |  |            |  | WiFi  |              +--+   +----------+
                    |  |  RoboRemo  +--------->|  Controller  |
                    |  |            |  |       |              +--+   +----------+
-                   |  +------------+  |       +------+-------+  +-->| HC-SR04  |
-                   |                  |              |              +----------+
-                   |                  |         WiFi |
-                   +------------------+              V
-                                              +--------------+
-                                              |              |      +----------+
-                                              |  Controller  +----->| H-bridge |
-                                              |              |      +----------+
-                                              +--------------+
+                   |  +------------+  |       +--------------+  +-->| HC-SR04  |
+                   |                  |                             +----------+
+                   |                  |       
+                   +------------------+              
+
+
+                                                                    +----------+
+                   +------------------+       +--------------+  +-->+ HC|SR04  |
+                   |  Tablet, Phone   |       |              +--+   +----------+
+                   |                  |  +--->+  Controller  |
+                   |  +------------+  |  |    |              +--+   +----------+
+                   |  |            +-----+    +--------------+  +-->+ H|bridge |
+                   |  |  RoboRemo  |  | WiFi                        +----------+
+                   |  |            +-----+    +--------------+
+                   |  +------------+  |  |    |              |      +----------+
+                   |                  |  +--->+  Controller  +----->+ H|bridge |
+                   |                  |  UDP  |              |      +----------+
+                   +------------------+ broad +--------------+
+                                        -cast
+
 ```
 
 ## Feature List
 Supported Scratch commands:
-- [x] `initNet`: Initialize WiFi subnet (only one subnet is supported simultaneously), IP address is a sum of subnet address and device id.
-- [x] `pinMode`: NodeMCU command(s): `gpio.mode` or `pwm.setup` + `pwm.start`
-- [x] `digitalWrite`: NodeMCU command(s): `gpio.write`
-- [x] `analogWrite`: NodeMCU command(s): `pwm.setduty`
-- [x] `analogPairWrite`: NodeMCU command(s): `pwm.setduty`
-- [ ] `tankWrite`: NodeMCU command(s): `pwm.setduty`
-- [ ] `servoWrite`: NodeMCU command(s): `gpio.write`
-- [x] `digitalRead`: NodeMCU command(s): `gpio.read`
-- [x] `analogRead`: NodeMCU command(s): `adc.read` or custom sensor command
-- [ ] `reset_all`: Reset state machine, NodeMCU command(s): `gpio.write`, `pwm.setduty`
-- [x] `poll`: return cached values of `digitalRead`, `analogRead`
+- [x] `Set network` (`initNet`): Initialize WiFi subnet (only one subnet is supported simultaneously), IP address is a sum of subnet address and device id.
+- [x] `set pin` (`pinMode`): NodeMCU command(s): `gpio.mode` or `pwm.setup` + `pwm.start`
+- [x] `digital write pin` (`digitalWrite`): NodeMCU command(s): `gpio.write`
+- [x] `analog write pin` (`analogWrite`): NodeMCU command(s): `pwm.setduty`
+- [x] `analog write pin pair` (`analogPairWrite`): NodeMCU command(s): `pwm.setduty`
+- [x] `tank write pin pair` (`tankWrite`): NodeMCU command(s): `pwm.setduty`
+- [ ] `servo write pair` (`servoWrite`): NodeMCU command(s): `gpio.write`
+- [x] `digital read pin` (`digitalRead`): NodeMCU command(s): `gpio.read`
+- [x] `analog read pin` (`analogRead`): NodeMCU command(s): `adc.read` or custom sensor command
+- [x] ![Stop](doc/stop-sign-small.png) (`reset_all`): Reset state machine, NodeMCU command(s): `gpio.write`, `pwm.setduty`
+- [x] - (`poll`): return cached values of `digitalRead`, `analogRead`
 
 Bridge Features:
 - [x] Supporting more NodeMCUs in one WiFi network
@@ -73,14 +84,15 @@ Bridge Features:
 - [x] Overload protection by batch command sending (programmatically configured)
 - [x] Overload protection by rare poll and caching digitalRead/analogRead values
 - [ ] Overload protection by queue size limitation (drop) 
-- [ ] Name resolution (instead of IP address) 
+- [x] Name resolution (instead of IP address) 
 - [ ] Unit tests 
 
 Controller Features:
+- [x] Basic digital pin handling (mode, high/low, PWM)
 - [ ] `analogRead`: `adc.read` registers value to D16 (virtual)
 - [x] `analogPairWrite`: transform a [-100,+100] value to 2 pins of H-bridge for a DC motor 
-- [ ] `tankWrite`: transform a joystick value pair ([-100,+100], [-100,+100]) to pins of H-bridge for 2 DC motor 
-- [ ] `getName`: returns Bridge name 
+- [x] `tankWrite`: transform a joystick value pair ([-100,+100], [-100,+100]) to pins of H-bridge for 2 DC motor 
+- [x] `getName`: returns Bridge name 
 - [ ] Too small PWM value is overwritten to 0 (for DC motors)
 - [x] WiFi station and AP mode
 - [x] MAC-based configuration
@@ -90,7 +102,7 @@ Controller Features:
 - [ ] Send values back to RoboRemo
 - [ ] TCP
 - [x] Supporting more NodeMCUs in one WiFi network, for Bridge
-- [ ] Supporting more NodeMCUs in one WiFi network, for Roboremo (Controller proxy)
+- [x] Supporting more NodeMCUs in one WiFi network, for Roboremo (UDP broadcast)
 - [x] HC-SR04 sensor support
 - [ ] DHT sensor support
 - [ ] BMP180 sensor support
@@ -120,7 +132,7 @@ D8 pin works well with Pololu DRV8833 as B2 input, but activates motor B with ch
 
 HC-SR04 needs 5V power, Echo pin output is 5V, too (3.3V input is good for Trig). A 4k7 with built-in 10k Pull-down resistor behave as a voltage divider, see: [HC-SR04 Ultrasonic Range Sensor on the Raspberry Pi](http://www.modmypi.com/blog/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi).
 
-Pin D4 is used by shields [DHT](http://www.wemos.cc/Products/dht_shield.html) and [DHT Pro](http://www.wemos.cc/Products/dht_pro_shield.html).
+Pin D4 is used by WeMos shields [DHT](http://www.wemos.cc/Products/dht_shield.html) and [DHT Pro](http://www.wemos.cc/Products/dht_pro_shield.html).
 
 Other pinout can also be used.
 
@@ -132,6 +144,29 @@ Firmware can be flashed by esptool.py or NodeMCU Flasher, see [Flashing the firm
 Copy `secure.lua.example` to `secure.lua` and edit own WiFi authentication configuration.<br/>Copy `config.lua.example` to `config.lua` and edit network configuration. Controller supports more WiFi network configuration, selected by `WIFI_CFG_NAME`. Controllers are identified by its MAC address. STATION and AP mode are supported. In STATION mode (`wifiMode=wifi.STATION`), Controller requests an IP address from a WiFi AP (a WiFi router or an ESP8266 in SOFTAP or STATIONAP mode). If WiFi AP is not alive, `ip` parameter will be used. If `static_ip=true`, Controller enforces `ip` as IP address (`netmask` should be declared, too). In SOFTAP mode (`wifiMode=wifi.SOFTAP`), NodeMCU runs as WiFi AP and WiFi router is not required for WiFi communication. Other Controllers in this WiFi network should be configured with static IP address (`static_ip=true`). Sensors with custom feature can be configured in `devices`.
 
 [ESPlorer](http://esp8266.ru/esplorer/) can be used to upload Lua files to ESP. Upload all `*.lua` files of directory `lua` to NodeMCU. After reset, NodeMCU will be ready to receive commands and send back input values.
+
+#### Socat
+`socat` can be used for testing Controller without any GUIs (Scratch, RoboRemo). Socat can be installed on Cygwin and Linux. Anoter famous program, `netcat`, also can send UDP messages, but cannot send from and receive to same port.
+
+Example for sending commands to a specific IP address (Scratch use case):
+``` 
+socat readline UDP4-DATAGRAM:192.168.10.102:9876,bind=:9877
+getName
+pinMode 4 1
+digitalWrite 4 0
+digitalWrite 4 0
+```
+
+Example for sending commands to broadcast address (RoboRemo use case):
+``` 
+socat readline UDP4-DATAGRAM:192.168.10.255:9876,bind=:9877
+getName
+tank-tower pinMode 4 1
+tank-tower digitalWrite 4 0
+tank-tower digitalWrite 4 0
+```
+
+There are several online portals, where broadcast address can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). 
 
 ### Bridge
 Bridge requires Python 2.7. Command line options will be printed out by `--help` parameter.
@@ -155,26 +190,38 @@ Pyton 2.7 package installation is described at the Linux distributor. Example fo
 Install [Scratch 2 Offline Editor](https://scratch.mit.edu/scratch2download). Import ESP42S extension description `src/ESP4S2.s2e` (shift-click on "File" and select "Import Experimental Extension" from the menu). The new extension blocks will appear in the More Blocks palette.
 
 ### RoboRemo
-[RoboRemo](http://www.roboremo.com) can be installed on Android by [Google Play](https://play.google.com/store/apps/details?id=com.hardcodedjoy.roboremo). 
+[RoboRemo](http://www.roboremo.com) can be installed for Android by [Google Play](https://play.google.com/store/apps/details?id=com.hardcodedjoy.roboremo).
+
+#### Single Controller
 To connect RoboRemo to Controller, use "Internet (UDP)" connection. Example for a connection string: `192.168.10.102:9876`, where the ip and port was set up in `lua/config.lua`.  
 A button should be created for initialize pins. Example init button configuration for a H-bridged DC motor on pins 5, 6 and a LED on pin 4:
-* set press action: `pinMode 4 1\npinMode 5 3\npinMode 6 3`
+* set press action (`\n` is also supported instead of Enter): 
+```
+pinMode 4 1
+pinMode 5 3
+pinMode 6 3
+```
 * repeat: delay, period = `0`, `only press action`
 
 Example on/off button configuration for a LED on pin 4:
-* set press action: `digitalWrite 4 1` or `digitalWrite 4 0`, depending on a pull-up resistor on the pin. 
+* set press action: `digitalWrite 4 1` or `digitalWrite 4 0`, depending on a pull-up resistor of the pin. 
 * repeat: delay, period = `0`, `only press action`
 
 Example slider for a H-bridged DC motor on pins 5, 6:
 * set id: `analogPairWrite 5 6`
 * set min, max: min = `-100`, max = `100`
-* send when released (tricky: `send when mover` should be seen)
+* send when released (tricky: `send when move` should be seen)
 * set repeat period: `500` ms
 
-## Scratch Programer's Guide
-After starting Bridge (`src/ESP4S2.py`) and loading ESP42S extension description (`src/ESP4S2.s2e`), Scratch is ready to create block programs. The first block which must be executed is the `Set network`, for example: ![initNet](doc/initNet.jpg).
-This block initializes Bridge and requests Controllers to send its names for name resolution. One second must be wait to collect responses from Controllers.
+#### Multiple Controllers
+RoboRemo cannot connect to multiple IP addresses. In this case, the boradcast IP address of subnet can be used. For example, if the subnet is 192.168.10.0/24, the broadcast address is 192.168.10.255. There are several online portals, where broadcast address can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). The command sending to this address will be received by all of Controllers. The target Controller name must be marked by the beginning of the command, for example: `tank-tower pinMode 4 1`, `tank-tower pinMode 4 1`, `tank-tower digitalWrite 4 1`. Without marking the Controller name, all of Controller will execute the command. 
 
+## Scratch Programer's Guide
+
+### First steps
+After starting Bridge (`src/ESP4S2.py`) and loading ESP42S extension description (`src/ESP4S2.s2e`), Scratch is ready to create block programs. The first block which must be executed is the `Set network`. This block initializes Bridge and requests Controllers to send its names back for name resolution. Example for `Set network` block: ![initNet](doc/initNet.jpg), where `192.168.10.0` is the subnet ID and `24` is the subnet mask bits. There are several online portals, where subnet ID and subnet mask bits can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). One second must be wait to collect responses from Controllers, for example: ![wait2s](doc/wait1s.jpg).
+
+### Blocks
 Pin mode must be set before using a pin (`set pin`). A block can be executed immediately (`E`) or with the next (`W`). More blocks can be bundled to one group until the first `E` block. The last block of execution bundle must be `E`. Examples for bundled blocks:
 * ![pinMode_tank-tower](doc/pinMode_tank-tower.jpg)
 * ![pinMode_tank-chassis](doc/pinMode_tank-chassis.jpg)
@@ -190,3 +237,32 @@ H-bridged DC motors can be controlled by `analog write pin pair` block, for exam
 Values can be used by blocks `digital read pin` and `analog read pin`, for example:
 * ![digitalRead](doc/digitalRead.jpg)
 * ![analogRead_cycle](doc/analogRead_cycle.jpg)
+
+### LED project
+It's the "Hello, World!" example of microcontroller world. Built-in blue LED of WeMos is connected to pin `4`. Because of built-in pull-up resistor, LED behaves opposite. After starting Controller and Bridge, please create the below project:
+
+![LED](doc/led.jpg)
+
+Click once on `Set network`. The `192.168.10.0/24` network will be used for communicating to Bridges. It will be valid until Brigde running. Depending on the network setup (WiFi router, ESP AP), the network can be different.
+
+Click on ![Start](doc/green-flag.png). Block `set pin` will set pin `4` to OUTPUT.
+
+When `o` key pressed, pin 4 will be set Low (`0`). Because of built-in pull-up resistor, LED will be turned on. When `x` key pressed, pin 4 will be set High (`1`). Because of built-in pull-up resistor, LED will be turned off.
+
+Click on ![Stop](doc/stop-sign-small.png) to stop all pins.
+
+### PWM project
+This project demonstrates PWM. Because of built-in pull-up resistor on pin `4`, LED behaves opposite: it will ligth strongest by setting PWM duty cycle to 0% and LED will be turned off by setting PWM duty cycle 100%. After starting Controller and Bridge, please create the below project:
+
+![PWM](doc/pwm.jpg)
+
+Click once on `Set network`. It will be valid until Brigde running.
+
+Click on ![Start](doc/green-flag.png). Block `set pin` will set pin `4` to PWM.
+
+Press keys 0, 1, 2, 3, 4 to try PWM duty cycles 0%, 50%, 80%, 95%, 100%.
+
+Click on ![Stop](doc/stop-sign-small.png) to stop all pins.
+
+### DC motor project
+This project demonstrates DC motor control using PWM and H-bridge. 

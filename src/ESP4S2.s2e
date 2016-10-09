@@ -6,6 +6,7 @@
 		[" ", "%m.execWait On device %s: digital write pin %n %m.highLow", "digitalWrite", "E", "tank-tower", 4, "High"],
 		[" ", "%m.execWait On device %s: analog write pin %n value %n", "analogWrite", "E", "tank-tower", 5, 100],
 		[" ", "%m.execWait On device %s: analog write pin pair (%n %n ) value %n", "analogPairWrite", "E", "tank-tower", 5, 6, 0],
+		[" ", "%m.execWait On device %s: tank write pin quad (%n %n %n %n ) XY value (%n %n )", "tankWrite", "E", "tank-chassis", 5, 6, 7, 3, 0, 0],
 		[" ", "%m.execWait On device %s: servo write pin %n degrees %n", "servoWrite", "E", "tank-tower", 5, 180],
 		["b", "On device %s: digital read pin %n", "digitalRead", "tank-tower", 0],
 		["r", "On device %s: analog read pin %n", "analogRead", "tank-tower", 0],
