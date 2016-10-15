@@ -91,18 +91,19 @@ Controller Features:
 - [x] Basic digital pin handling (mode, high/low, PWM)
 - [ ] `analogRead`: `adc.read` registers value to D16 (virtual)
 - [x] `analogPairWrite`: transform a [-100,+100] value to 2 pins of H-bridge for a DC motor 
-- [x] `tankWrite`: transform a joystick value pair ([-100,+100], [-100,+100]) to pins of H-bridge for 2 DC motor 
+- [x] `tankWrite`: transform a joystick XY value pair ([-100,+100], [-100,+100]) to A-B pins of H-bridge for 2 DC motor 
 - [x] `getName`: returns Bridge name 
 - [ ] Too small PWM value is overwritten to 0 (for DC motors)
 - [x] WiFi station and AP mode
 - [x] MAC-based configuration
 - [x] Configuration for more networks
 - [x] State check for pin mode 
+- [ ] Automatic pin mode 
 - [x] UDP
 - [ ] Send values back to RoboRemo
 - [ ] TCP
 - [x] Supporting more NodeMCUs in one WiFi network, for Bridge
-- [x] Supporting more NodeMCUs in one WiFi network, for Roboremo (UDP broadcast)
+- [x] Supporting more NodeMCUs in one WiFi network, for RoboRemo (UDP broadcast)
 - [x] HC-SR04 sensor support
 - [ ] DHT sensor support
 - [ ] BMP180 sensor support
@@ -110,7 +111,7 @@ Controller Features:
 ## Installation and Configuration
 
 ### Getting Repository
-Clone or download and extract repository from GitHub. Please read `LICENSE`.
+Clone or download and extract repository from GitHub. Please read [LICENSE](LICENSE).
 
 ### Wiring
 [WeMos D1 mini](http://www.wemos.cc/Products/d1_mini.html) system has some additional resistors and dedicated pins for shields. These constraints determine a logical pinout:
@@ -141,12 +142,12 @@ NodeMCU is an embedded Lua firmware to ESP8266. Firmware can be download from [N
 Firmware can be flashed by esptool.py or NodeMCU Flasher, see [Flashing the firmware](https://nodemcu.readthedocs.io/en/dev/en/flash/). Since 1.5.1-master, default baud is 115200 (instead of 9600).
 
 ### Controller
-Copy `secure.lua.example` to `secure.lua` and edit own WiFi authentication configuration.<br/>Copy `config.lua.example` to `config.lua` and edit network configuration. Controller supports more WiFi network configuration, selected by `WIFI_CFG_NAME`. Controllers are identified by its MAC address. STATION and AP mode are supported. In STATION mode (`wifiMode=wifi.STATION`), Controller requests an IP address from a WiFi AP (a WiFi router or an ESP8266 in SOFTAP or STATIONAP mode). If WiFi AP is not alive, `ip` parameter will be used. If `static_ip=true`, Controller enforces `ip` as IP address (`netmask` should be declared, too). In SOFTAP mode (`wifiMode=wifi.SOFTAP`), NodeMCU runs as WiFi AP and WiFi router is not required for WiFi communication. Other Controllers in this WiFi network should be configured with static IP address (`static_ip=true`). Sensors with custom feature can be configured in `devices`.
+Copy `secure.lua.example` to `secure.lua` and edit own WiFi authentication configuration.<br/>Copy `config.lua.example` to `config.lua` and edit network configuration. Controller supports more WiFi network configuration, selected by `WIFI_CFG_NAME`. Controllers are identified by its MAC address. STATION and AP mode are supported. In STATION mode (`wifiMode=wifi.STATION`), Controller requests an IP address from a WiFi AP (a WiFi router or an ESP8266 in SOFTAP or STATIONAP mode). If WiFi AP is not alive, `ip` parameter will be used. If `static_ip=true`, Controller enforces `ip` as IP address (`netmask` should be declared, too). In SOFTAP mode (`wifiMode=wifi.SOFTAP`), NodeMCU runs as WiFi AP and WiFi router is not required for WiFi communication. Other Controllers in this WiFi network should be configured with static IP address (`static_ip=true`). The Controller listening port can be set by `ROBOREMO_PORT`, its default value is `9876`. Sensors with custom feature can be configured in `devices`.
 
 [ESPlorer](http://esp8266.ru/esplorer/) can be used to upload Lua files to ESP. Upload all `*.lua` files of directory `lua` to NodeMCU. After reset, NodeMCU will be ready to receive commands and send back input values.
 
 #### Socat
-`socat` can be used for testing Controller without any GUIs (Scratch, RoboRemo). Socat can be installed on Cygwin and Linux. Anoter famous program, `netcat`, also can send UDP messages, but cannot send from and receive to same port.
+`socat` can be used for testing Controller without any GUIs (Scratch, RoboRemo). Socat can be installed on Cygwin and Linux. Anoter famous program, `nc` (Netcat), can also send UDP messages, but cannot send from and receive to same port.
 
 Example for sending commands to a specific IP address (Scratch use case):
 ``` 
@@ -154,7 +155,7 @@ socat readline UDP4-DATAGRAM:192.168.10.102:9876,bind=:9877
 getName
 pinMode 4 1
 digitalWrite 4 0
-digitalWrite 4 0
+digitalWrite 4 1
 ```
 
 Example for sending commands to broadcast address (RoboRemo use case):
@@ -163,13 +164,13 @@ socat readline UDP4-DATAGRAM:192.168.10.255:9876,bind=:9877
 getName
 tank-tower pinMode 4 1
 tank-tower digitalWrite 4 0
-tank-tower digitalWrite 4 0
+tank-tower digitalWrite 4 1
 ```
 
 There are several online portals, where broadcast address can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). 
 
 ### Bridge
-Bridge requires Python 2.7. Command line options will be printed out by `--help` parameter.
+Bridge requires Python 2.7. Bridge command line options will be printed out by `--help` parameter. Bridge listening port can be set by `--esp-listen-port`, its default value is `9877`. Controllers port can be set by `--esp-port`, its default value is `9876`.
 
 #### Windows install
 Python 2.7 can be downloaded and installed from [Python Releases for Windows](https://www.python.org/downloads/windows/). Example for starting Bridge:
@@ -190,7 +191,7 @@ Pyton 2.7 package installation is described at the Linux distributor. Example fo
 Install [Scratch 2 Offline Editor](https://scratch.mit.edu/scratch2download). Import ESP42S extension description `src/ESP4S2.s2e` (shift-click on "File" and select "Import Experimental Extension" from the menu). The new extension blocks will appear in the More Blocks palette.
 
 ### RoboRemo
-[RoboRemo](http://www.roboremo.com) can be installed for Android by [Google Play](https://play.google.com/store/apps/details?id=com.hardcodedjoy.roboremo).
+[RoboRemo](http://www.roboremo.com) can be installed for Android by [Google Play](https://play.google.com/store/apps/details?id=com.hardcodedjoy.roboremo). Commands are described in the chapter [Controller Command Reference](#controller-command-reference).
 
 #### Single Controller
 To connect RoboRemo to Controller, use "Internet (UDP)" connection. Example for a connection string: `192.168.10.102:9876`, where the ip and port was set up in `lua/config.lua`.  
@@ -214,12 +215,123 @@ Example slider for a H-bridged DC motor on pins 5, 6:
 * set repeat period: `500` ms
 
 #### Multiple Controllers
-RoboRemo cannot connect to multiple IP addresses. In this case, the boradcast IP address of subnet can be used. For example, if the subnet is 192.168.10.0/24, the broadcast address is 192.168.10.255. There are several online portals, where broadcast address can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). The command sending to this address will be received by all of Controllers. The target Controller name must be marked by the beginning of the command, for example: `tank-tower pinMode 4 1`, `tank-tower pinMode 4 1`, `tank-tower digitalWrite 4 1`. Without marking the Controller name, all of Controller will execute the command. 
+RoboRemo cannot connect to multiple IP addresses. In this case, the boradcast IP address of subnet can be used. For example, if the subnet is 192.168.10.0/24, the broadcast address is 192.168.10.255. There are several online portals, where broadcast address can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). The command sending to this address will be received by all of Controllers. The target Controller name must be marked by the beginning of the command, for example: `tank-tower pinMode 4 1`, `tank-tower digitalWrite 4 0`, `tank-tower digitalWrite 4 1`. Without marking the Controller name, all Controllers will execute the command. 
+
+## Controller Command Reference
+
+A command can be sent to one Controller or to all Controllers, using broadcast address. In this case, the Controller name must be specified before the command. General syntax of commands is:
+
+```[controller-name ]commandName[ option1[ option2[ option3[...]]]```
+
+Endline (`\n`) is required at the end of command. Controller name can be set in `config.lua`.
+
+### Get Controller Name
+
+Command `getName` returns Controller name. This feature is used for Scratch for name resolution. Practically, it should be sent to broadcast address. Example:
+
+```echo "getName" | socat STDIO UDP4-DATAGRAM:192.168.10.255:9876,bind=:9877```
+
+### Set Pin Mode
+
+Command `pinMode` initializes pin. The below modes are supported:
+* `0`: INPUT, called NodeMCU command: `gpio.mode(pin, gpio.INPUT)`
+* `1`: OUTPUT, called NodeMCU command: `gpio.mode(pin, gpio.OUTPUT)`
+* `2`: Analog input. If pin `0`, `adc.read` will be called later, otherwise, a sensor driver can store integer value on this pin.
+* `3`: PWM, called NodeMCU commands: `pwm.setup(pin,1000,0)`, `pwm.start(pin)`
+* `4`: Servo, not supported yet.
+
+Command syntax is: `pinMode <pin> <mode>`. Example for set pin `4` mode to OUTPUT using single IP address and broadcast address:
+
+```echo "pinMode 4 1" | socat STDIO UDP4-DATAGRAM:192.168.10.103:9876,bind=:9877```
+
+```echo "tank-chassis pinMode 4 1" | socat STDIO UDP4-DATAGRAM:192.168.10.255:9876,bind=:9877```
+
+### Digital Read
+
+Command `digitalRead` reads digital GPIO pin value. It calls `gpio.read(pin)` and returns by the given level. Before executing this command, pin mode must be set to INPUT. Command syntax is: `digitalRead <pin>`. Example for set pin `3` mode to INPUT and reading pin level:
+
+``` 
+socat readline UDP4-DATAGRAM:192.168.10.103:9876,bind=:9877
+pinMode 3 0
+digitalRead 3
+```
+
+### Digital Write
+
+Command `digitalWrite` sets digital GPIO pin value. It calls `gpio.write(pin, level)`. Before executing this command, pin mode must be set to OUTPUT. Command syntax is: `digitalWrite <pin> <level>`. Example for set pin `4` mode to OUTPUT and set its level to gpio.LOW and gpio.HIGH:
+
+``` 
+socat readline UDP4-DATAGRAM:192.168.10.103:9876,bind=:9877
+pinMode 4 1
+digitalWrite 4 0
+digitalWrite 4 1
+```
+
+### PWM Write
+
+Command `analogWrite` sets duty cycle for a pin, duty interval is [`0`,`100`]. It calls `pwm.setduty(pin, duty)`. Before executing this command, pin mode must be set to PWM. Command syntax is: `analogWrite <pin> <duty>`. Example for set pin `4` mode to PWM and set duty cycle to `50` and `100`:
+
+``` 
+socat readline UDP4-DATAGRAM:192.168.10.103:9876,bind=:9877
+pinMode 4 3
+analogWrite 4 50
+analogWrite 4 100
+```
+
+### PWM Pair Write
+
+Command `analogPairWrite` sets duty cycle for 2 pins of a H-bridged DC motor, duty interval is [`-100`,`100`]. If the duty is negative, DC motor will turn reverse. In simple case, it calls `pwm.setduty(pin1, duty)` and `pwm.setduty(pin2, 0)`. If the value is negative, the polarity should be changed, so `pwm.setduty(pin1, 0)` and `pwm.setduty(pin2, 0-duty)` will be called. Before executing this command, pin mode must be set to PWM both on 2 pins. Command syntax is: `analogWrite <pin1> <pin2> <duty>`. Example for set pins `5` and `6` mode to PWM and set duty cycle to 50 and -50 (reverse turn):
+
+``` 
+socat readline UDP4-DATAGRAM:192.168.10.103:9876,bind=:9877
+pinMode 5 3
+pinMode 6 3
+analogPairWrite 5 6 50
+analogPairWrite 5 6 -50
+```
+
+### Tank Write
+
+Command `tankWrite` transform a joystick XY value pair ([-100,+100], [-100,+100]) to A-B pins of H-bridge for 2 DC motor. The command calls `pwm.setduty(pin, duty)` on each 4 pins. Before executing this command, pin mode must be set to PWM both on 4 pins. Command syntax is: `tankWrite <pinA1> <pinA2> <pinB1> <pinB2> <x> <y>`. Example for set pins `5`, `6`, `7`, `3` mode to PWM and set x and y values to drive forward, right and turn left in place:
+
+``` 
+socat readline UDP4-DATAGRAM:192.168.10.103:9876,bind=:9877
+pinMode 5 3
+pinMode 6 3
+pinMode 7 3
+pinMode 3 3
+tankWrite 5 6 7 3 0 100
+tankWrite 5 6 7 3 100 100
+tankWrite 5 6 7 3 -100 0
+```
+
+### Servo Write
+
+Not supported yet.
+
+
+### Analog Read
+
+Command `analogRead` reads integer values on pins. If pin is `0`, `adc.read(0)` will be called, otherwise, returns sample value of custom sensor driver. Pin mode (`pinMode`) should not called on the pin. Command syntax is: `analogRead <pin>`. Example for getting sensor sample configured on pin `8`:
+
+```echo "analogRead 8" | socat STDIO UDP4-DATAGRAM:192.168.10.255:9876,bind=:9877```
+
+### Poll
+
+Command `poll` returns all cached `digitalRead` and `analogRead` values. Example for getting all cached values:
+  
+```echo "poll" | socat STDIO UDP4-DATAGRAM:192.168.10.255:9876,bind=:9877```
+
+### Reset All
+
+Command `reset_all` resets output values to `0`. It calls `gpio.write(pin, 0)` on mode OUTPUT and calls `pwm.setduty(pin, 0)` on mode PWM. Example for getting all cached values:
+  
+```echo "reset_all" | socat STDIO UDP4-DATAGRAM:192.168.10.255:9876,bind=:9877```
 
 ## Scratch Programer's Guide
 
 ### First steps
-After starting Bridge (`src/ESP4S2.py`) and loading ESP42S extension description (`src/ESP4S2.s2e`), Scratch is ready to create block programs. The first block which must be executed is the `Set network`. This block initializes Bridge and requests Controllers to send its names back for name resolution. Example for `Set network` block: ![initNet](doc/initNet.jpg), where `192.168.10.0` is the subnet ID and `24` is the subnet mask bits. There are several online portals, where subnet ID and subnet mask bits can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). One second must be wait to collect responses from Controllers, for example: ![wait2s](doc/wait1s.jpg).
+After starting Bridge (`src/ESP4S2.py`) and loading ESP42S extension description (`src/ESP4S2.s2e`), Scratch is ready to create block programs. The first block which must be executed is the `Set network`. This block initializes Bridge and requests Controllers to send its names back for name resolution. Example for `Set network` block: ![initNet](doc/initNet.jpg), where `192.168.10.0` is the subnet ID and `24` is the subnet mask bits. There are several online portals, where subnet ID and subnet mask bits can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). At least one second must be wait to collect responses from Controllers, for example: ![wait1s](doc/wait1s.jpg).
 
 ### Blocks
 Pin mode must be set before using a pin (`set pin`). A block can be executed immediately (`E`) or with the next (`W`). More blocks can be bundled to one group until the first `E` block. The last block of execution bundle must be `E`. Examples for bundled blocks:
@@ -233,6 +345,8 @@ The simplest control block is the `digital write pin`. See examples for controll
 PWM can be controlled by block `analog write pin`, for example: ![analogWrite](doc/analogWrite.jpg).
 
 H-bridged DC motors can be controlled by `analog write pin pair` block, for example: ![analogPairWrite](doc/analogPairWrite.jpg). The value must be set in interval [-100, 100].
+
+Two H-bridged DC motors can be controlled by `tank write pin quad` block, for example: ![tankWrite](doc/tankWrite.jpg). Four pins and XY values (joystick) must be set in interval [-100, 100]. Controller transforms XY values to A-B values.
 
 Values can be used by blocks `digital read pin` and `analog read pin`, for example:
 * ![digitalRead](doc/digitalRead.jpg)
