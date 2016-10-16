@@ -48,7 +48,8 @@ The aim of this project is giving microcontroller control into hands of kids. Th
 
 ESP8266 is a cheap microcontroller with built-in WiFi (SoC). See [IoT for $10](https://prezi.com/j9xhibnr7qbj/iot-for-10/) to execute a "Hello, World!" example. There are a lot of variants, examples are optimized for [WeMos D1 mini](https://www.wemos.cc/product/d1-mini.html).
 
-Hardware instructions for WeMos D1 mini and tank example are described at [instructables](http://www.instructables.com/id/Controlling-LEGO-Tank-by-ESP8266-With-Scratch-or-R/).
+Hardware instructions for WeMos D1 mini and tank example are described at [instructables](http://www.instructables.com/id/Controlling-LEGO-Tank-by-ESP8266-With-Scratch-or-R/):
+![Controlling LEGO Tank by ESP8266 With Scratch or RoboRemo](https://cdn.instructables.com/FI2/M1QL/IU9US0HZ/FI2M1QLIU9US0HZ.MEDIUM.jpg)
 
 Software Components:
 * ESP8266: microcontroller with built-in WiFi _(required)_
