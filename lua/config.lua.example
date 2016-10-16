@@ -25,7 +25,7 @@ MAC_config={
 		["5ccf7f0fc2cc"]={name="tank-tower",
 		wifiMode=wifi.STATION,
 		ip="192.168.11.102",
-		static_ip=false,
+		static_ip=true,
 		netmask="255.255.255.0",
 		net_type=net.UDP,
 		listen={port=ROBOREMO_PORT},

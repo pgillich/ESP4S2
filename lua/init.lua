@@ -300,7 +300,7 @@ function sendData(sck,data)
 --	if string.len(data)==0 then
 --		data=" "
 --	end
-	print("Send back data: "..data)
+	print("< "..data)
 	data=data.."\n"
 	sck:send(data)
 end
