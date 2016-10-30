@@ -1,4 +1,4 @@
-WIFI_CFG_NAME="Home"
+WIFI_CFG_NAME="Demo"
 
 ROBOREMO_PORT=9876
 
@@ -10,7 +10,8 @@ MAC_config={
 		static_ip=false,
 		net_type=net.UDP,
 		listen={port=ROBOREMO_PORT},
-		devices={["hcsr"]={["absorber"]=2,["tmr_ms"]=500}}
+		devices={["hcsr"]={["absorber"]=2,["tmr_ms"]=500}},
+    tank={},
 		},
 		["18fe34d40583"]={name="tank-chassis",
 		wifiMode=wifi.STATION,
@@ -18,7 +19,8 @@ MAC_config={
 		static_ip=false,
 		net_type=net.UDP,
 		listen={port=ROBOREMO_PORT},
-		devices={}
+		devices={},
+		tank={},
 		}
 	},
 	["Demo"]={
@@ -29,7 +31,8 @@ MAC_config={
 		netmask="255.255.255.0",
 		net_type=net.UDP,
 		listen={port=ROBOREMO_PORT},
-		devices={}
+		devices={},
+    tank={},
 		},
 		["18fe34d40583"]={name="tank-chassis",
 		wifiMode=wifi.SOFTAP,
@@ -38,7 +41,8 @@ MAC_config={
 		netmask="255.255.255.0",
 		net_type=net.UDP,
 		listen={port=ROBOREMO_PORT},
-		devices={}
+		devices={},
+    tank={x_corr=-100,y_corr=-100,v_min=40},
 		}	
 	}
 }

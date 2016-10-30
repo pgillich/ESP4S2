@@ -1,18 +1,16 @@
 -- This file is part of ESP4S2. ESP4S2 is a bridge between MIT Scratch 2 and ESP8266 Lua.
--- Copyright (C) 2016 pgillich
---
---     ESP4S2 is free software: you can redistribute it and/or modify
---     it under the terms of the GNU General Public License as published by
---     the Free Software Foundation, either version 3 of the License, or
---     (at your option) any later version.
---
---     ESP4S2 is distributed in the hope that it will be useful,
---     but WITHOUT ANY WARRANTY; without even the implied warranty of
---     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
---     GNU General Public License for more details.
---
---     You should have received a copy of the GNU General Public License
---     along with ESP4S2. If not, see <http://www.gnu.org/licenses/>.
+-- Copyright (C) 2016 pgillich, under GPLv3 license.
+
+-- RELOAD PROTECTION BEGIN
+if init_loaded~=nil then
+print("init.lua already loaded!")
+else
+init_loaded=true
+-- RELOAD PROTECTION END
+
+print("M: "..tostring(node.heap()))
+
+-- WiFi config
 
 dofile("secure.lua")
 
@@ -22,8 +20,6 @@ while string.len(MAC_ID)==0 do
 	MAC_ID=wifi.sta.getmac()
 end
 MAC_ID=string.gsub(MAC_ID,":","")
-
-connListener=nil
 
 -- MAC address dependent config
 dofile("config.lua")
@@ -37,253 +33,19 @@ else
 		static_ip=false,
 		net_type=0,
 		listen={port=0},
-		devices={}
+		devices={},
+    tank={},
 	}
 end
 
 -- Wifi init
+
 WIFI_TMR=0
 WIFI_TMR_INTERVAL=1000
 
 SERVER_PORT=config.listen.port
 
-MODE_UNAVAILABLE=-1
-MODE_INPUT=0
-MODE_OUTPUT=1
-MODE_ANALOG=2
-MODE_PWM=3
-MODE_SERVO=4
-
-PIN_MODES={
-	[MODE_UNAVAILABLE]="UNAVAILABLE",
-	[MODE_INPUT]="INPUT",
-	[MODE_OUTPUT]="OUTPUT",
-	[MODE_ANALOG]="ANALOG",
-	[MODE_PWM]="PWM",
-	[MODE_SERVO]="SERVO"
-}
-
-PINS_state={
-	[0]={m=-1,v=-1},
-	[1]={m=-1,v=-1},
-	[2]={m=-1,v=-1},
-	[3]={m=-1,v=-1},
-	[4]={m=-1,v=-1},
-	[5]={m=-1,v=-1},
-	[6]={m=-1,v=-1},
-	[7]={m=-1,v=-1},
-	[8]={m=-1,v=-1},
-	[11]={m=-1,v=-1},
-	[12]={m=-1,v=-1},
-}
-
-TANK_CONST={
-	["TLA"]={a=-100,b=100,c=0,d=1},
-	["TLB"]={a=100,b=100,c=0,d=0},
-	["TRA"]={a=-100,b=100,c=0,d=0},
-	["TRB"]={a=100,b=100,c=0,d=-1},
-	["BLA"]={a=-100,b=100,c=0,d=0},
-	["BLB"]={a=100,b=100,c=0,d=1},
-	["BRA"]={a=-100,b=100,c=0,d=-1},
-	["BRB"]={a=100,b=100,c=0,d=0}
-}
-
-local function csplit(str,sep)
-	local ret={}
-	local n=1
-	for w in str:gmatch("([^"..sep.."]*)") do
-		ret[n]=ret[n] or w
-		if w=="" then n=n+1 end
-	end
-	return ret
-end
-
-function pinMode(pin,mode)
-	local resp=""
-	if type(PINS_state[pin])~=nil and type(PIN_MODES[mode])~=nil then
-		print("  pinMode("..tostring(pin)..","..tostring(mode)..")")
-		change2mode(pin,mode,PINS_state[pin]["m"])
-		PINS_state[pin]["m"]=mode
-	end
-	return resp
-end
-
-function digitalWrite(pin,val)
-	local resp=""
-	if type(PINS_state[pin])~=nil and PINS_state[pin]["m"]==MODE_OUTPUT then
-		if val==0 or val==1 then
-			print("  digitalWrite("..tostring(pin)..","..tostring(val)..")")
-			change2value(pin, PINS_state[pin]["m"], val, PINS_state[pin]["v"])
-			PINS_state[pin]["v"]=val
-		end
-	else
-		print("ERR: invalid digitalWrite("..tostring(pin)..","..tostring(val)..")")
-	end
-	return resp
-end
-
-function analogWrite(pin,val)
-	local resp=""
-	if type(PINS_state[pin])~=nil and PINS_state[pin]["m"]==MODE_PWM then
-		if val>=0 and val<=100 then
-			print("  analogWrite("..tostring(pin)..","..tostring(val)..")")
-			change2value(pin, PINS_state[pin]["m"], val, PINS_state[pin]["v"])
-			PINS_state[pin]["v"]=val
-		end
-	else
-		print("ERR: invalid analogWrite("..tostring(pin)..","..tostring(val)..")")
-	end
-	return resp
-end
-
-function analogPairWrite(pin1,pin2,val)
-	local resp=""
-	if val>0 then
-		resp=resp..analogWrite(pin1,val)
-		resp=resp..analogWrite(pin2,0)
-	elseif val<0 then
-		resp=resp..analogWrite(pin1,0)
-		resp=resp..analogWrite(pin2,0-val)
-	else
-		resp=resp..analogWrite(pin1,0)
-		resp=resp..analogWrite(pin2,0)
-	end
-	return resp
-end
-
-function tankWrite(pin1,pin2,pin3,pin4,x,y)
-	local resp=""
-	local idx=""
-	if y>=0 then
-		idx=idx.."T"
-	else
-		idx=idx.."B"
-	end
-	if x>=0 then
-		idx=idx.."R"
-	else
-		idx=idx.."L"
-	end  
-	local T=TANK_CONST[idx.."A"]
-	local v=(T.d*x*y+T.a*x+T.b*y+T.c)/100
-	resp=resp..analogPairWrite(pin1,pin2,v)
-	T=TANK_CONST[idx.."B"]
-	v=(T.d*x*y+T.a*x+T.b*y+T.c)/100
-	resp=resp..analogPairWrite(pin3,pin4,v)
-	return resp
-end
-
-function resetAll()
-	local resp=""
-	for pin,mv in pairs(PINS_state) do
-		local m=mv["m"]
-		local v=mv["v"]
-		if type(m)~=nil then
-			if m==MODE_OUTPUT then
-				resp=resp..digitalWrite(pin,0)
-			elseif m==MODE_PWM then
-				resp=resp..analogWrite(pin,0)
-			end
-		end
-	end	
-	return resp
-end
-
-function getName()
-	return "name "..config.name
-end
-
-function getValue(pin)
-	if type(PINS_state[pin])~=nil then
-		if pin==0 and PINS_state[pin]["m"]==MODE_ANALOG then
-			return adcRead(pin)
-		elseif PINS_state[pin]["m"]==MODE_ANALOG then
-			readDevices()
-			return PINS_state[pin]["v"]
-		elseif PINS_state[pin]["m"]==MODE_INPUT then
-			return gpioRead(pin)
-		end
-	end
-	return -1
-end
-
-function poll()
-	local data=""
-	readDevices()
-	for pin,mv in pairs(PINS_state) do
-		local m=mv["m"]
-		local v=mv["v"]
-		if type(m)~=nil and (m==MODE_INPUT or m==MODE_ANALOG) then
-			if string.len(data)>0 then
-				data=data.."\n"
-			end
-			data=data..tostring(pin).." "..tostring(v)
-		end
-	end
-	return data
-end
-
-function exeCmd(st)
-	local resp=""
-	print("> "..st)
-	local command=csplit(st," ")
-	if #command>1 then
-		if config.name==command[1] then
-			table.remove(command,1)
-		else
-			for m,cfg in pairs(MAC_config[WIFI_CFG_NAME]) do
-				if cfg.name==command[1] then
-					return resp
-				end
-			end 
-		end
-	end
-	if #command==1 then
-		local cmd=command[1]
-		if cmd=="reset_all" then
-			resp=resetAll()
-		elseif cmd=="getName" then
-			resp=getName()
-		elseif cmd=="poll" then
-			resp=poll()
-		end
-	elseif #command==2 then
-		local cmd=command[1]
-		local pin=tonumber(command[2])
-		if cmd=="digitalRead" then
-			resp=tostring(pin).." "..tostring(getValue(pin))
-		elseif cmd=="analogRead" then
-			resp=tostring(pin).." "..tostring(getValue(pin))
-		end
-	elseif #command==3 then
-		local cmd=command[1]
-		local pin=tonumber(command[2])
-		local val=tonumber(command[3])
-		if cmd=="pinMode" then
-			resp=pinMode(pin,val)
-		elseif cmd=="digitalWrite" then
-			resp=digitalWrite(pin,val)
-		elseif cmd=="analogWrite" then
-			resp=analogWrite(pin,val)
-		end
-	elseif #command==4 then
-		local cmd=command[1]
-		local pin1=tonumber(command[2])
-		local pin2=tonumber(command[3])
-		local val=tonumber(command[4])
-		if cmd=="analogPairWrite" then
-			resp=analogPairWrite(pin1,pin2,val)
-		end
-	elseif #command==7 then
-		local cmd=command[1]
-		if cmd=="tankWrite" then
-			resp=tankWrite(tonumber(command[2]),tonumber(command[3]),tonumber(command[4]),tonumber(command[5]),tonumber(command[6]),tonumber(command[7]))
-		end
-	else
-		print("ERR: unknown command")
-	end
-	return resp
-end
+connListener=nil
 
 device_hcsr=nil
 function readDevices()
@@ -294,6 +56,18 @@ function readDevices()
 			end
 		end
 	end
+end
+
+function setupDevices()
+  for dev,params in pairs(config.devices) do
+    if dev=="hcsr" then
+      dofile("hcsr.lua") 
+      device_hcsr=hcsr.init(params["pin_trig"], params["pin_echo"], params["absorber"], params["tmr_id"], params["tmr_ms"]) 
+      PINS_state[device_hcsr.trig]["m"]=MODE_UNAVAILABLE
+      PINS_state[device_hcsr.echo]["m"]=MODE_ANALOG
+      device_hcsr.start()
+    end
+  end
 end
 
 function sendData(sck,data)
@@ -323,80 +97,6 @@ function receiveData(sck,data)
 	sendData(sck,resp)
 end
 
-function gpioMode(pin,val)
-	print("   gpio.mode("..tostring(pin)..","..tostring(val)..")")
-	gpio.mode(pin,val)
-end
-
-function gpioWrite(pin,val)
-	print("   gpio.write("..tostring(pin)..","..tostring(val)..")")
-	gpio.write(pin,val)
-end
-
-function pwmStop(pin)
-	print("   pwm.stop("..tostring(pin)..")")
-	pwm.stop(pin)
-end
-
-function pwmStart(pin)
-	print("   pwm.setup("..tostring(pin)..",1000,0)")
-	pwm.setup(pin,1000,0)
-	print("   pwm.start("..tostring(pin)..")")
-	pwm.start(pin)
-end
-
-function pwmSetduty(pin,val)
-	print("   pwm.setduty("..tostring(pin)..","..tostring(val)..")")
-	pwm.setduty(pin, val*1023/100) 	
-end
-
-function gpioRead(pin)
-	local val=gpio.read(pin)
-	print("   gpio.read("..tostring(pin)..")="..tostring(val))
-	PINS_state[pin]["v"]=val
-	return val
-end
-
-function adcRead(pin)
-	if pin==0 then
-		local val=adc.read(pin)
-		print("   adc.read("..tostring(pin)..")="..tostring(val))
-		PINS_state[pin]["v"]=val
-		return val
-	else
-		print("ERR: pin not enabled for ADC:"..tostring(pin))
-	end
-	return -1
-end
-
-function change2mode(pin,mode,oldMode)
-	if mode~=oldMode then
-		if oldMode==MODE_PWM then
-			pwmStop(pin)
-		end
-	
-		if mode==MODE_INPUT then
-			gpioMode(pin, gpio.INPUT)
-		elseif mode==MODE_OUTPUT then
-			gpioMode(pin, gpio.OUTPUT)
-		elseif mode==MODE_PWM then
-			pwmStart(pin)
-		else
-			print("ERR: unknown mode, "..tostring(mode))
-		end
-	end
-end
-
-function change2value(pin,mode,val,oldVal)
-	if mode==MODE_OUTPUT then
-		gpioWrite(pin,val)
-	elseif mode==MODE_PWM then
-		pwmSetduty(pin,val)
-	else
-		print("ERR: unknown mode, "..tostring(mode))
-	end
-end
-
 function setupConnection()
 	if config.net_type==net.UDP then
 		dofile("conn_udp.lua")
@@ -407,23 +107,15 @@ function setupConnection()
 	initConnection(receiveData)
 end
 
-function setupDevices()
-	for dev,params in pairs(config.devices) do
-		if dev=="hcsr" then
-			dofile("hcsr.lua") 
-			device_hcsr=hcsr.init(params["pin_trig"], params["pin_echo"], params["absorber"], params["tmr_id"], params["tmr_ms"]) 
-			PINS_state[device_hcsr.trig]["m"]=MODE_UNAVAILABLE
-			PINS_state[device_hcsr.echo]["m"]=MODE_ANALOG
-			device_hcsr.start()
-		end
-	end
-end
-
 function setupFinished()
-	print("Setup finished, free: "..tostring(node.heap()))
+	print("Setup finished, M: "..tostring(node.heap()))
 end
 
 function initServices()
+  dofile("pin.lua")
+  dofile("command_const.lua")
+  dofile("command.lua")
+  print("M: "..tostring(node.heap()))
 	setupConnection()
 	setupDevices()
 	setupFinished()
@@ -467,3 +159,7 @@ if config.wifiMode~=wifi.NULLMODE then
 		initServices()
 	end
 end
+
+-- RELOAD PROTECTION BEGIN
+end
+-- RELOAD PROTECTION END

@@ -1,20 +1,4 @@
 -- HC-SR04 example for NodeMCU
--- Original source from https://github.com/sza2/node_hcsr04
---   main change: replacing tmr.delay to tmr.alert
--- Optimized for WeMos D1 mini, see more:
---   http://www.wemos.cc/Products/d1_mini.html
--- Sensor pins:
---   ECHO: D8 (GPIO15) pulled down by 10k (R2) on WeMos D1 mini
---     R1 between ECHO and D8 as voltage divider: 4k7, see more:
---     http://www.modmypi.com/blog/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi
---   TRIG: D0 (GPIO16)
---     Can only be used as gpio read/write. No support for open-drain/interrupt/pwm/i2c/ow.
---   VCC: 5V
---   GND: G
--- Trig time: min. 10 us
--- Max echo time: 38 ms
--- Usage:
---   dofile("hcsr.lua") device=hcsr.init() device.start()
 
 HCSR_TRIG_DEFAULT = 0
 HCSR_ECHO_DEFAULT = 8
