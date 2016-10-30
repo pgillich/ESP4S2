@@ -119,7 +119,7 @@ Supported Scratch commands:
 - [x] `digital read pin` (`digitalRead`): NodeMCU command(s): `gpio.read`
 - [x] `analog read pin` (`analogRead`): NodeMCU command(s): `adc.read` or custom sensor command
 - [x] ![Stop](doc/stop-sign-small.png) (`reset_all`): Reset state machine, NodeMCU command(s): `gpio.write`, `pwm.setduty`
-- [x] (`poll`): return cached values of `digitalRead`, `analogRead`
+- [x] `poll`: return cached values of `digitalRead`, `analogRead`
 - [ ] Simplified Block commands
 
 Bridge Features:
@@ -141,6 +141,7 @@ Controller Features:
 - [x] `tankWrite`: transforms a joystick XY value pair ([-100,+100], [-100,+100]) to A-B pins of H-bridge for 2 DC motor 
 - [x] `getName`: returns Bridge name 
 - [ ] Too small PWM value is overwritten to 0 (for DC motors)
+- [x] Too small PWM value is overwritten to 0 (for tank)
 - [x] WiFi station and AP mode
 - [x] MAC-based configuration
 - [x] Configuration for more networks
@@ -155,10 +156,23 @@ Controller Features:
 - [ ] DHT sensor support
 - [ ] BMP180 sensor support
 
+## Device and Sensor Extensions
+
+### HC-SR04
+
+Original source from: [node_hcsr04](https://github.com/sza2/node_hcsr04). Main change: replacing tmr.delay to tmr.alert. Optimized for [WeMos D1 mini](http://www.wemos.cc/Products/d1_mini.html). Sensor pins:
+- ECHO: D8 (GPIO15) pulled down by 10k (R2) on WeMos D1 mini. R1 between ECHO and D8 as voltage divider: 4k7, see more:
+ [HC-SR04 Ultrasonic Range Sensor on the Raspberry Pi](http://www.modmypi.com/blog/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi)
+- TRIG: D0 (GPIO16). Can only be used as gpio read/write. No support for open-drain/interrupt/pwm/i2c/ow.
+- VCC: 5V
+- GND: G
+
+Trig time: min. 10 us. Max echo time: 38 ms. Usage: `dofile("hcsr.lua") device=hcsr.init() device.start()`, automatically called by `init.lua`, if `devices["hcsr"]` in `config.lua` is set properly.
+
 # Installation and Configuration
 
 ## Getting Repository
-Clone or download and extract repository from GitHub. Please read [LICENSE](LICENSE).
+Clone or download and extract repository from GitHub. Please read [LICENSE](LICENSE), TOC is created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc).
 
 ## Wiring
 [WeMos D1 mini](http://www.wemos.cc/Products/d1_mini.html) system has some additional resistors and dedicated pins for shields. These constraints determine a logical pinout:
@@ -280,6 +294,7 @@ Blocks for full functionality looks too complex for young children. Simplified b
 * Only one Controller is supported.
 * Pin groups must be named for group operations (for example: `analogPairWrite`, `tankWrite`).
 * Waiting for next command (`W`) is not supported.
+
 With this limitations, each student can handle own named Controller.
 
 ### First steps
