@@ -34,7 +34,7 @@ else
 		net_type=0,
 		listen={port=0},
 		devices={},
-    tank={},
+		tank={},
 	}
 end
 
@@ -59,15 +59,15 @@ function readDevices()
 end
 
 function setupDevices()
-  for dev,params in pairs(config.devices) do
-    if dev=="hcsr" then
-      dofile("hcsr.lua") 
-      device_hcsr=hcsr.init(params["pin_trig"], params["pin_echo"], params["absorber"], params["tmr_id"], params["tmr_ms"]) 
-      PINS_state[device_hcsr.trig]["m"]=MODE_UNAVAILABLE
-      PINS_state[device_hcsr.echo]["m"]=MODE_ANALOG
-      device_hcsr.start()
-    end
-  end
+	for dev,params in pairs(config.devices) do
+		if dev=="hcsr" then
+			dofile("hcsr.lua") 
+			device_hcsr=hcsr.init(params["pin_trig"], params["pin_echo"], params["absorber"], params["tmr_id"], params["tmr_ms"]) 
+			PINS_state[device_hcsr.trig]["m"]=MODE_UNAVAILABLE
+			PINS_state[device_hcsr.echo]["m"]=MODE_ANALOG
+			device_hcsr.start()
+		end
+	end
 end
 
 function sendData(sck,data)
@@ -112,10 +112,10 @@ function setupFinished()
 end
 
 function initServices()
-  dofile("pin.lua")
-  dofile("command_const.lua")
-  dofile("command.lua")
-  print("M: "..tostring(node.heap()))
+	dofile("pin.lua")
+	dofile("command_const.lua")
+	dofile("command.lua")
+	print("M: "..tostring(node.heap()))
 	setupConnection()
 	setupDevices()
 	setupFinished()
@@ -128,7 +128,7 @@ if config.wifiMode~=wifi.NULLMODE then
 		if config.static_ip then
 			wifi.sta.setip(config)
 		end
-				print("Connecting WiFi... MAC="..MAC_ID.." SSID="..WIFI_CFG[WIFI_CFG_NAME].ssid)
+		print("Connecting WiFi... MAC="..MAC_ID.." SSID="..WIFI_CFG[WIFI_CFG_NAME].ssid)
 		wifi.sta.config(WIFI_CFG[WIFI_CFG_NAME].ssid,WIFI_CFG[WIFI_CFG_NAME].pwd,1)
 		wifi.sta.connect()
 
