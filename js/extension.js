@@ -27,8 +27,7 @@
     	$.ajax({
     		url: "http://localhost:58266/"+parameter,
     		crossDomain: true,
-    	})
-    	done(function(data, textStatus, jqXHR}) {
+    	}).done( function(data, textStatus, jqXHR) {
     		console.log(""+textStatus+": "+data);
     		return data;
     	}).fail( function(jqXHR, textStatus, errorThrown) {
