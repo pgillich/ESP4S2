@@ -1,240 +1,155 @@
--- This file is part of ESP4S2. ESP4S2 is a bridge between MIT Scratch 2 and ESP8266 Lua.
--- Copyright (C) 2016 pgillich, under GPLv3 license.
-
-function change2mode(pin,mode,oldMode)
-	if mode~=oldMode then
-		if oldMode==MODE_PWM then
-			pwmStop(pin)
-		end
-	
-		if mode==MODE_INPUT then
-			gpioMode(pin, gpio.INPUT)
-		elseif mode==MODE_OUTPUT then
-			gpioMode(pin, gpio.OUTPUT)
-		elseif mode==MODE_PWM then
-			pwmStart(pin)
-		else
-			print("ERR: unknown mode, "..tostring(mode))
-		end
-	end
+function sM(p,m)
+if m==MI then
+gM(p,gpio.INPUT)
+Dv[p]=-1
+elseif m==MO then
+gM(p,gpio.OUTPUT)
+if Dv[p]~=nil then Dv[p]=nil table.remove(Dv,p) end
+elseif m==MP then
+pStart(p)
+if Dv[p]~=nil then Dv[p]=nil table.remove(Dv,p) end
+end
 end
 
-function change2value(pin,mode,val,oldVal)
-	if mode==MODE_OUTPUT then
-		gpioWrite(pin,val)
-	elseif mode==MODE_PWM then
-		pwmSetduty(pin,val)
-	else
-		print("ERR: unknown mode, "..tostring(mode))
-	end
+function aPW(p1,p2,v)
+dp3(2,"aPW",p1,p2,v)
+if v>0 then
+pDuty(p1,v)
+pDuty(p2,0)
+elseif v<0 then
+pDuty(p1,0)
+pDuty(p2,0-v)
+else
+pDuty(p1,0)
+pDuty(p2,0)
+end
 end
 
-function pinMode(pin,mode)
-	local resp=""
-	if type(PINS_state[pin])~=nil and type(PIN_MODES[mode])~=nil then
-		print("  pinMode("..tostring(pin)..","..tostring(mode)..")")
-		change2mode(pin,mode,PINS_state[pin]["m"])
-		PINS_state[pin]["m"]=mode
-	end
-	return resp
+function lVm(v,vm)
+if 0<v and v<vm then return 0
+elseif -vm<v and v<0 then return 0
+end
+return v
 end
 
-function digitalWrite(pin,val)
-	local resp=""
-	if type(PINS_state[pin])~=nil and PINS_state[pin]["m"]==MODE_OUTPUT then
-		if val==0 or val==1 then
-			print("  digitalWrite("..tostring(pin)..","..tostring(val)..")")
-			change2value(pin, PINS_state[pin]["m"], val, PINS_state[pin]["v"])
-			PINS_state[pin]["v"]=val
-		end
-	else
-		print("ERR: invalid digitalWrite("..tostring(pin)..","..tostring(val)..")")
-	end
-	return resp
-end
-
-function analogWrite(pin,val)
-	local resp=""
-	if type(PINS_state[pin])~=nil and PINS_state[pin]["m"]==MODE_PWM then
-		if val>=0 and val<=100 then
-			print("  analogWrite("..tostring(pin)..","..tostring(val)..")")
-			change2value(pin, PINS_state[pin]["m"], val, PINS_state[pin]["v"])
-			PINS_state[pin]["v"]=val
-		end
-	else
-		print("ERR: invalid analogWrite("..tostring(pin)..","..tostring(val)..")")
-	end
-	return resp
-end
-
-function analogPairWrite(pin1,pin2,val)
-	local resp=""
-	if val>0 then
-		resp=resp..analogWrite(pin1,val)
-		resp=resp..analogWrite(pin2,0)
-	elseif val<0 then
-		resp=resp..analogWrite(pin1,0)
-		resp=resp..analogWrite(pin2,0-val)
-	else
-		resp=resp..analogWrite(pin1,0)
-		resp=resp..analogWrite(pin2,0)
-	end
-	return resp
-end
-
-function limitVmin(v,v_min)
-	if 0<v and v<v_min then
-		return 0
-	elseif -v_min<v and v<0 then 
-		return 0
-	end
-	return v
-end
-
-function tankWrite(pin1,pin2,pin3,pin4,x,y)
-	x=x+(config.tank.x_corr or 0)
-	y=y+(config.tank.y_corr or 0)
-	local resp=""
-	local idx=""
-	if y>=0 then
-		idx=idx.."T"
-	else
-		idx=idx.."B"
-	end
-	if x>=0 then
-		idx=idx.."R"
-	else
-		idx=idx.."L"
-	end  
-	local T=TANK_CONST[idx.."A"]
-	local v=(T.d*x*y+T.a*x+T.b*y+T.c)/100
-	v=limitVmin(v,config.tank.v_min or 0)
-	resp=resp..analogPairWrite(pin1,pin2,v)
-	T=TANK_CONST[idx.."B"]
-	v=(T.d*x*y+T.a*x+T.b*y+T.c)/100
-	v=limitVmin(v,config.tank.v_min or 0)
-	resp=resp..analogPairWrite(pin3,pin4,v)
-	return resp
+function tW(p1,p2,p3,p4,x,y)
+x=x+(cfg.t.xc or 0)
+y=y+(cfg.t.yc or 0)
+local yxm=""
+if y>=0 then yxm="T" else yxm="B" end
+if x>=0 then yxm=yxm.."R" else yxm=yxm.."L" end  
+local T=TC[yxm.."A"]
+local v=(T.d*x*y+T.a*x+T.b*y+T.c)/100
+v=lVm(v,cfg.t.vm or 0)
+aPW(p1,p2,v)
+T=TC[yxm.."B"]
+v=(T.d*x*y+T.a*x+T.b*y+T.c)/100
+v=lVm(v,cfg.t.vm or 0)
+aPW(p3,p4,v)
 end
 
 function resetAll()
-	local resp=""
-	for pin,mv in pairs(PINS_state) do
-		local m=mv["m"]
-		local v=mv["v"]
-		if type(m)~=nil then
-			if m==MODE_OUTPUT then
-				resp=resp..digitalWrite(pin,0)
-			elseif m==MODE_PWM then
-				resp=resp..analogWrite(pin,0)
-			end
-		end
-	end 
-	return resp
+for p=0,8 do
+if Dv[p]== nil then
+	if p>0 then pStop(p) end
+	gM(p,gpio.OUTPUT)
+	gW(p,0)
+end
+end
 end
 
 function getName()
-	return "name "..config.name
+return "name "..cfg.name
 end
 
-function getValue(pin)
-	if type(PINS_state[pin])~=nil then
-		if pin==0 and PINS_state[pin]["m"]==MODE_ANALOG then
-			return adcRead(pin)
-		elseif PINS_state[pin]["m"]==MODE_ANALOG then
-			readDevices()
-			return PINS_state[pin]["v"]
-		elseif PINS_state[pin]["m"]==MODE_INPUT then
-			return gpioRead(pin)
-		end
-	end
-	return -1
+function readDevice(p)
+v=Dv[p]
+if type(v)=="number" and v<0 then v=gR(p) end
+return v
 end
 
 function poll()
-	local data=""
-	readDevices()
-	for pin,mv in pairs(PINS_state) do
-		local m=mv["m"]
-		local v=mv["v"]
-		if type(m)~=nil and (m==MODE_INPUT or m==MODE_ANALOG) then
-			if string.len(data)>0 then
-				data=data.."\n"
-			end
-			data=data..tostring(pin).." "..tostring(v)
-		end
-	end
-	return data
+local d=""
+for p in pairs(Dv) do
+	v=readDevice(p)
+	if string.len(d)>0 then d=d.."\n" end
+	d=d..S(p).." "..S(v)
+end
+return d
 end
 
-function csplit(str,sep)
-	local ret={}
-	local n=1
-	for w in str:gmatch("([^"..sep.."]*)") do
-		ret[n]=ret[n] or w
-		if w=="" then n=n+1 end
-	end
-	return ret
+function csplit(t,s)
+local r={}
+local n=1
+for w in t:gmatch("([^"..s.."]*)") do
+	r[n]=r[n] or w
+	if w=="" then n=n+1 end
+end
+return r
 end
 
 function exeCmd(st)
-	local resp=""
-	print("> "..st)
-	local command=csplit(st," ")
-	if #command>1 then
-		if config.name==command[1] then
-			table.remove(command,1)
-		else
-			for m,cfg in pairs(MAC_config[WIFI_CFG_NAME]) do
-				if cfg.name==command[1] then
-					return resp
-				end
-			end 
-		end
-	end
-	if #command==1 then
-		local cmd=command[1]
-		if cmd=="reset_all" then
-			resp=resetAll()
-		elseif cmd=="getName" then
-			resp=getName()
-		elseif cmd=="poll" then
-			resp=poll()
-		end
-	elseif #command==2 then
-		local cmd=command[1]
-		local pin=tonumber(command[2])
-		if cmd=="digitalRead" then
-			resp=tostring(pin).." "..tostring(getValue(pin))
-		elseif cmd=="analogRead" then
-			resp=tostring(pin).." "..tostring(getValue(pin))
-		end
-	elseif #command==3 then
-		local cmd=command[1]
-		local pin=tonumber(command[2])
-		local val=tonumber(command[3])
-		if cmd=="pinMode" then
-			resp=pinMode(pin,val)
-		elseif cmd=="digitalWrite" then
-			resp=digitalWrite(pin,val)
-		elseif cmd=="analogWrite" then
-			resp=analogWrite(pin,val)
-		end
-	elseif #command==4 then
-		local cmd=command[1]
-		local pin1=tonumber(command[2])
-		local pin2=tonumber(command[3])
-		local val=tonumber(command[4])
-		if cmd=="analogPairWrite" then
-			resp=analogPairWrite(pin1,pin2,val)
-		end
-	elseif #command==7 then
-		local cmd=command[1]
-		if cmd=="tankWrite" then
-			resp=tankWrite(tonumber(command[2]),tonumber(command[3]),tonumber(command[4]),tonumber(command[5]),tonumber(command[6]),tonumber(command[7]))
-		end
+local r=""
+P("> "..st)
+local cc=csplit(st," ")
+if #cc>1 then
+	if cfg.name==cc[1] then
+		table.remove(cc,1)
 	else
-		print("ERR: unknown command")
+		for m,cfg in pairs(MC[WCN]) do
+			if cfg.name==cc[1] then
+				return r
+			end
+		end 
 	end
-	return resp
+end
+if #cc==1 then
+	local cmd=cc[1]
+	if cmd=="reset_all" then
+		resetAll()
+	elseif cmd=="getName" then
+		r=getName()
+	elseif cmd=="poll" then
+		r=poll()
+	end
+elseif #cc==2 then
+	local cmd=cc[1]
+	local p=N(cc[2])
+	if cmd=="digitalRead" then
+		r=S(p).." "..S(gR(p))
+	elseif cmd=="analogRead" then
+		r=S(p).." "..S(readDevice(p))
+	end
+elseif #cc==3 then
+	local cmd=cc[1]
+	local p=N(cc[2])
+	local v=N(cc[3])
+	if cmd=="pinMode" then
+		sM(p,v)
+	elseif cmd=="digitalWrite" then
+		gW(p,v)
+	elseif cmd=="analogWrite" then
+		if v<0 then
+			pStop(p)
+		else
+			pDuty(p,v)
+		end
+	end
+elseif #cc==4 then
+	local cmd=cc[1]
+	local p1=N(cc[2])
+	local p2=N(cc[3])
+	local v=N(cc[4])
+	if cmd=="analogPairWrite" then
+		aPW(p1,p2,v)
+	end
+elseif #cc==7 then
+	local cmd=cc[1]
+	if cmd=="tankWrite" then
+		tW(N(cc[2]),N(cc[3]),N(cc[4]),N(cc[5]),N(cc[6]),N(cc[7]))
+	end
+else
+	P("E: CMD")
+end
+return r
 end

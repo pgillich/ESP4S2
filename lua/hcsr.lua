@@ -1,109 +1,92 @@
--- HC-SR04 example for NodeMCU
+HCSR_TUS=10
+HCSR_DM=23200
 
-HCSR_TRIG_DEFAULT = 0
-HCSR_ECHO_DEFAULT = 8
-HCSR_ABSORBER_DEFAULT = 2
-HCSR_TMR_ID_DEFAULT = 6
-HCSR_TMR_MS_DEFAULT = 500
-HCSR_TRIG_US = 10
+hcsr={}
+function hcsr.init(pt,pe,a,tid,tms,V)
+local s={}
+s.tid=tid
+s.tms=tms
+tmr.stop(s.tid)
+s.ts=0
+s.te=0
+s.t=pt
+s.e=pe
+gpio.mode(s.t,gpio.OUTPUT)
+gpio.mode(s.e,gpio.INT)
+s.a=a
+s.last=0
+V[pt]=0
+V[pe]=0
 
-hcsr = {};
+function s.sleep(tus)
+tmr.delay(tus)
+end
 
-function hcsr.init(pin_trig, pin_echo, absorber, tmr_id, tmr_ms)
-	local self = {}
-	self.tmr_id = tmr_id or HCSR_TMR_ID_DEFAULT
-	tmr.stop(self.tmr_id)
+function s.e_cb(l,t)
+if l==1 then
+	s.ts=t
+	gpio.trig(s.e,"down")
+else
+	s.te=t
+	gpio.trig(s.e,"none")
+end
+-- P("  s.e_cb "..l)
+end
+
+function s.sT()
+s.ts=0
+s.te=0
+gpio.trig(s.e,"up",s.e_cb)
+gpio.write(s.t,1)
+s.sleep(HCSR_TUS)
+gpio.write(s.t,0)
+end
+
+function s.uV()
+local d=-1
+if s.te>0 then
+d=s.te-s.ts
+if d<0 then d=d+2147483647 end
+if d<HCSR_DM then
+	s.last=d
+	V[pt]=V[pt]+(s.last-V[pt])/s.a
+	V[pe]=V[pt]/58
+else d=0 end
+end
+--P("d="..d.." cm="..S(V[pe]).." start="..s.ts.." end="..s.te)
+if d>0 then
+	dl(0)
+	--P(string.rep(" ",V[pe]/10)..S(V[pe]))
+else
+	dl(1)
+	--P("-")
+end
+end
+
+function s.measW()
+gpio.trig(s.e,"none")
+s.uV()
+s.sT()
+tmr.start(s.tid)
+end
+
+function s.meas()
+local st,err=pcall(s.measW)
+if not st then
+	P("HCSR ERR: "..S(err))
+end
+end
+
+function s.stop()
+tmr.stop(s.tid)
+end
+
+function s.start()
+s.stop()
+s.meas()
+end
 	
-	self.time_start = 0
-	self.time_end = 0
-	self.trig = pin_trig or HCSR_TRIG_DEFAULT
-	self.echo = pin_echo or HCSR_ECHO_DEFAULT
-	gpio.mode(self.trig, gpio.OUTPUT)
-	gpio.mode(self.echo, gpio.INT)
-	self.absorber = absorber or HCSR_ABSORBER_DEFAULT
-	self.tmr_ms = tmr_ms or HCSR_TMR_MS_DEFAULT
-	self.last = 0
-	self.value = 0
-	self.dus = 0
+tmr.register(s.tid,s.tms,tmr.ALARM_SEMI,s.meas)
 
-	print("HCSR: trig="..tostring(self.trig)..", echo="..tostring(self.echo)..", absorber="..tostring(self.absorber)..", tmr_id="..tostring(self.tmr_id)..", tmr_ms="..tostring(self.tmr_ms))
-
-	function self.sleep(tus)
-		local start = tmr.now()
-		self.dus = 0 
-		while(self.dus < tus) do
-			self.dus = tmr.now() - start
-		end
-	end
-
-	function self.echo_cb(level)
-		--print("  self.echo_cb "..level)
-		if level == 1 then
-			self.time_start = tmr.now()
-			gpio.trig(self.echo, "down")
-		else
-			self.time_end = tmr.now()
-			gpio.trig(self.echo, "none")
-		end
-	end
-	
-	function self.sendTrig()
-		--print("  self.sendTrig")
-		self.time_start = 0
-		self.time_end = 0
-		self.last = 0
-		gpio.trig(self.echo, "up", self.echo_cb)
-		gpio.write(self.trig, gpio.HIGH)
-		self.sleep(HCSR_TRIG_US)
-		gpio.write(self.trig, gpio.LOW)
-	end
-
-	function self.updateValue()
-		local delta = -1
-		if self.time_end > 0  then
-			delta = self.time_end - self.time_start
-			if delta < 0 then delta = delta + 2147483647 end
-			self.last = delta
-			self.value = self.value + (self.last-self.value)/self.absorber
-		else
-			--self.last = -1
-			--self.value = -1
-		end
-		 
-		--print("cm="..tostring(self.value/58).." start="..self.time_start.." end="..self.time_end)
-		if self.value > 0 then
-			--print(string.rep(" ", self.value/58).."#")
-		else
-			--print("-")
-		end
-	end
-
-	function self.measureWorker()
-		--print()
-		self.updateValue()
-		self.sendTrig()
-
-		--print("  "..node.heap())
-		tmr.start(self.tmr_id)
-	end
-	
-	function self.measure()
-		local status, err = pcall(self.measureWorker)
-		if not status then
-			print("HCSR: ERR: "..tostring(err))
-		end
-	end
-
-	function self.stop()
-		tmr.stop(self.tmr_id)
-	end
-
-	function self.start()
-		self.stop()
-		self.measure()
-	end
-		
-	tmr.register(self.tmr_id, self.tmr_ms, tmr.ALARM_SEMI, self.measure)
-
-	return self
+return s
 end

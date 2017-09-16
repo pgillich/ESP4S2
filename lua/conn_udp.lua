@@ -1,21 +1,14 @@
-function initUdp(dataReceiver)
-	if config.listen.port>0 then
-		print("UDP: Init listener :"..config.listen.port)
-		connListener=net.createServer(net.UDP) 
-		connListener:on("receive", dataReceiver) 
-		connListener:listen(config.listen.port)     
-	end
+function WD.iC(dataReceiver)
+if cfg.l.p>0 then
+print("U:L "..cfg.l.p)
+connL=net.createUDPSocket()
+connL:listen(cfg.l.p)     
+connL:on("receive",dataReceiver) 
+end
 end
 
-function closeUdp()
-	print("UDP: Close")
-	connListener=nil
+function WD.cC()
+print("U:C")
+connL=nil
 end
 
-function sendUdp(body)
-	connListener(body)
-end
-
-sendBody=sendUdp
-initConnection=initUdp
-closeConnection=closeUdp

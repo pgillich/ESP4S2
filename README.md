@@ -92,15 +92,15 @@ Example setups:
 
 
                                                                     +----------+
-                   +------------------+       +--------------+  +-->+ HC|SR04  |
+                   +------------------+       +--------------+  +-->+ HC-SR04  |
                    |  Tablet, Phone   |       |              +--+   +----------+
                    |                  |  +--->+  Controller  |
                    |  +------------+  |  |    |              +--+   +----------+
-                   |  |            +-----+    +--------------+  +-->+ H|bridge |
+                   |  |            +-----+    +--------------+  +-->+ H-bridge |
                    |  |  RoboRemo  |  | WiFi                        +----------+
                    |  |            +-----+    +--------------+
                    |  +------------+  |  |    |              |      +----------+
-                   |                  |  +--->+  Controller  +----->+ H|bridge |
+                   |                  |  +--->+  Controller  +----->+ H-bridge |
                    |                  |  UDP  |              |      +----------+
                    +------------------+ broad +--------------+
                                         -cast
@@ -136,9 +136,10 @@ Bridge Features:
 
 Controller Features:
 - [x] Basic digital pin handling (mode, high/low, PWM)
-- [ ] `analogRead`: `adc.read` registers value to D16 (virtual)
+- [ ] `analogRead`: `adc.read` registers value to D16 (virtual) ###
 - [x] `analogPairWrite`: transforms a [-100,+100] value to 2 pins of H-bridge for a DC motor 
 - [x] `tankWrite`: transforms a joystick XY value pair ([-100,+100], [-100,+100]) to A-B pins of H-bridge for 2 DC motor 
+- [x] Stop PWM on a pin, if value is -1 (`analog write pin -1`)
 - [x] `getName`: returns Bridge name 
 - [ ] Too small PWM value is overwritten to 0 (for DC motors)
 - [x] Too small PWM value is overwritten to 0 (for tank)
@@ -203,11 +204,15 @@ NodeMCU is an embedded Lua firmware to ESP8266. Firmware can be download from [N
 Firmware can be flashed by esptool.py or NodeMCU Flasher, see [Flashing the firmware](https://nodemcu.readthedocs.io/en/dev/en/flash/). Since 1.5.1-master, default baud is 115200 (instead of 9600).
 
 ## Controller
-Copy `secure.lua.example` to `secure.lua` and edit own WiFi authentication configuration.
+Copy `secure.lua.example` to `secure.lua` and edit own WiFi authentication configuration. Keys supported by NodeMCU wifi are described at [wifi.ap Module](https://nodemcu.readthedocs.io/en/master/en/modules/wifi/#wifiapconfig).
+
 
 Copy `config.lua.example` to `config.lua` and edit network configuration. 
 
-* Controller supports more WiFi network configuration, selected by `WIFI_CFG_NAME`. 
+* Controller supports more WiFi network configuration, selected by `WIFI_CFG_NAME`. Keys supported by NodeMCU wifi library, with examples:
+**  ip = "192.168.0.111",
+**  netmask = "255.255.255.0",
+**  gateway = "192.168.0.1"
 
 * Controllers are identified by its MAC address. STATION and AP mode are supported. In STATION mode (`wifiMode=wifi.STATION`), Controller requests an IP address from a WiFi AP (a WiFi router or an ESP8266 in SOFTAP or STATIONAP mode). If WiFi AP is not alive, `ip` parameter will be used. If `static_ip=true`, Controller enforces `ip` as IP address (`netmask` should be declared, too). In SOFTAP mode (`wifiMode=wifi.SOFTAP`), NodeMCU runs as WiFi AP and WiFi router is not required for WiFi communication. Other Controllers in this WiFi network should be configured with static IP address (`static_ip=true`). 
 
@@ -426,6 +431,17 @@ analogWrite 4 50
 analogWrite 4 100
 ```
 
+### Stop PWM
+
+Before using a PWM-mode pin in other mode, PWM clock must be stopped. It can be achieved by sending `-1` to the pin by `analogWrite`. It calls `pwm.stop(pin)` and `pwm.close(pin)`. Example for stop PWM on pin `4`:
+
+``` 
+socat readline UDP4-DATAGRAM:192.168.10.103:9876,bind=:9877
+pinMode 4 3
+analogWrite 4 50
+analogWrite 4 -1
+```
+
 ### PWM Pair Write
 
 Command `analogPairWrite` sets duty cycle for 2 pins of a H-bridged DC motor, duty interval is [`-100`,`100`]. If the duty is negative, DC motor will turn reverse. In simple case, it calls `pwm.setduty(pin1, duty)` and `pwm.setduty(pin2, 0)`. If the value is negative, the polarity should be changed, so `pwm.setduty(pin1, 0)` and `pwm.setduty(pin2, 0-duty)` will be called. Before executing this command, pin mode must be set to PWM both on 2 pins. Command syntax is: `analogWrite <pin1> <pin2> <duty>`. Example for set pins `5` and `6` mode to PWM and set duty cycle to 50 and -50 (reverse turn):
@@ -472,6 +488,6 @@ Command `poll` returns all cached `digitalRead` and `analogRead` values. Example
 
 ### Reset All
 
-Command `reset_all` resets output values to `0`. It calls `gpio.write(pin, 0)` on mode OUTPUT and calls `pwm.setduty(pin, 0)` on mode PWM. Example for getting all cached values:
+Command `reset_all` resets output pins to `0`. It calls `pwm.stop(pin)`, `pwm.close(pin)`, `gpio.mode(pin,gpio.OUTPUT)`, `gpio.write(pin,0)` on all non-read and non-device pins. Example for sending reset:
   
 ```echo "reset_all" | socat STDIO UDP4-DATAGRAM:192.168.10.255:9876,bind=:9877```

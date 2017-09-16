@@ -1,165 +1,211 @@
--- This file is part of ESP4S2. ESP4S2 is a bridge between MIT Scratch 2 and ESP8266 Lua.
--- Copyright (C) 2016 pgillich, under GPLv3 license.
+function P(...) print(...) end
+function S(t) return tostring(t) end
+function SR(...) return string.rep(...) end
+function N(s) return tonumber(s) end
+function dp(l,c,p) P(string.rep(" ",l)..c.."("..S(p)..")") end
+function dp2(l,c,p,p2) P(SR(" ",l)..c.."("..S(p)..","..S(p2)..")") end
+function dpr(l,c,p,v) P(SR(" ",l)..c.."("..S(p)..")="..S(v)) end
+function dp3(l,c,p,p2,p3) P(SR(" ",l)..c.."("..S(p)..","..S(p2)..","..S(p3)..")") end
+function dl(v) if DL>-1 then gpio.write(DL,v) end end
+--function dof(fn) local st=pcall(dofile,fn..".lc") if not st then dofile(fn..".lua") end end
+function dof(fn) dofile(fn..".lua") end
+WS=wifi.sta
+Wtmr=0
+WtmrIv=1000
+connL=nil
+dHcsr=nil
 
--- RELOAD PROTECTION BEGIN
-if init_loaded~=nil then
-print("init.lua already loaded!")
+if iLD~=nil then
+P("E:init ALR.LD")
+return
+end
+iLD=true
+P("M:"..S(node.heap()))
+
+WD={}
+function WD.R()
+dof("secure")
+MAC=WS.getmac()
+while string.len(MAC)==0 do
+tmr.now()
+MAC=WS.getmac()
+end
+MAC=string.gsub(MAC,":","")
+dof("config")
+if DL>-1 then gpio.mode(DL,1) dl(0) end
+if type(MC[WCN])~=nil and type(MC[WCN][MAC])~=nil then
+cfg=MC[WCN][MAC]
 else
-init_loaded=true
--- RELOAD PROTECTION END
-
-print("M: "..tostring(node.heap()))
-
--- WiFi config
-
-dofile("secure.lua")
-
-MAC_ID=wifi.sta.getmac()
-while string.len(MAC_ID)==0 do
-	tmr.now()
-	MAC_ID=wifi.sta.getmac()
+P(MAC)
+cfg={name="unknown",
+	wM=wifi.NULLMODE,
+	ip="",
+	ipS=false,
+	nT=0,
+	l={p=0},
+	d={},
+	t={},
+}
 end
-MAC_ID=string.gsub(MAC_ID,":","")
-
--- MAC address dependent config
-dofile("config.lua")
-
-if type(MAC_config[WIFI_CFG_NAME])~=nil and type(MAC_config[WIFI_CFG_NAME][MAC_ID])~=nil then
-	config=MAC_config[WIFI_CFG_NAME][MAC_ID]
+end
+WD.R()
+WD.R=nil
+for n in pairs(MC) do
+if n==WCN then
+for m in pairs(MC[n]) do
+if MC[n][m].name~=cfg.name then MC[n][m]={name=MC[n][m].name} end
+end
 else
-	config={name="unknown",
-		wifiMode=wifi.NULLMODE,
-		ip="",
-		static_ip=false,
-		net_type=0,
-		listen={port=0},
-		devices={},
-		tank={},
-	}
+MC[n]=nil
+end
+end
+collectgarbage()
+Sp=cfg.l.p
+dl(1)
+
+dH=nil
+function sDev()
+for d,p in pairs(cfg.d) do
+if d=="hcsr" then
+	P("HCSR:set")
+	dof("hcsr") 
+	dH=hcsr.init(p.p[1],p.p[2],p["a"],p["tid"],p["tms"],Dv)
+	dH.start()
+elseif d=="adc" then
+	P("ADC:set")
+	Dv[p.p]=0
+elseif d=="hdt" then
+	P("DHT:set")
+	Dv[p.p[1]]=0
+	Dv[p.p[2]]=0
+elseif d=="bmp085" then
+	P("BMP:set")
+	i2c.setup(0,p.p[1],p.p[2],i2c.SLOW)
+	bmp085.setup()
+	Dv[p.p[1]]=0
+	Dv[p.p[2]]=0
+elseif d=="tmr" then
+	P("TMR:set")
+	tmr.register(p.tid,p.tms,tmr.ALARM_SEMI,rDevs)
+	tmr.start(p.tid)
+end
+end
 end
 
--- Wifi init
+function rDevs()
+for p,v in pairs(Dv) do
+	if type(v)=="string" or v>=0 then rDev(p) end
+end
+tmr.start(cfg.d.tmr.tid)
+end
 
-WIFI_TMR=0
-WIFI_TMR_INTERVAL=1000
+function rDev(p)
+if Dv[p] ~= nil and (type(Dv[p])=="string" or Dv[p]>=0) then 
+if cfg.d["adc"]~=nil and p==cfg.d.adc.p then Dv[p]=adc.read(0)
+elseif cfg.d["hdt"]~=nil and p==cfg.d.hdt.p[1] then
+	local st,t,h,td,hd=dht.read(p)
+	if st==dht.OK then Dv[p]=t.."."..td Dv[cfg.d.hdt.p[2]]=h.."."..hd end
+elseif cfg.d["bmp085"]~=nil and p==cfg.d.bmp085.p[1] then
+	local t=bmp085.temperature()
+	Dv[p]=S(t/10).."."..S(t%10)
+	local pr=bmp085.pressure(cfg.d.bmp085.o)
+	Dv[cfg.d.bmp085.p[2]]=S(pr/100).."."..S(pr%100)
+end
+--dpr(3,"rDev",p,Dv[p])
+return Dv[p]
+end
+return ""
+end
 
-SERVER_PORT=config.listen.port
+function sDt(sck,d,port,ip)
+P("<"..ip.." "..d)
+if cfg.l["s"]~=nil then port=cfg.l.s end
+sck:send(port,ip,d.."\n")
+end
 
-connListener=nil
+rCmd=""
+function rDt(sck,d,port,ip)
+rCmd=rCmd..d
+local a,b=string.find(rCmd,"\n",1,true)
+local r=""
+while a do
+	local cmd=string.sub(rCmd,1,a-1)
+	local st,rA=pcall(exeCmd,cmd)
+	if string.len(r)>0 then
+		r=r.."\n"
+	end
+	r=r..S(rA)
+	rCmd=string.sub(rCmd,a+1,string.len(rCmd))
+	a,b=string.find(rCmd,"\n",1,true)
+end
+sDt(sck,r,port,ip)
+end
 
-device_hcsr=nil
-function readDevices()
-	for dev,params in pairs(config.devices) do
-		if dev=="hcsr" then
-			if device_hcsr~=nil and PINS_state[device_hcsr.echo]["m"]==MODE_ANALOG then
-				PINS_state[device_hcsr.echo]["v"]=device_hcsr.value/58
-			end
+function sConn()
+if cfg.nT==net.UDP then
+	dof("conn_udp")
+elseif cfg.nT==net.TCP then
+	dof("conn_tcp")
+end
+WD.iC(rDt)
+end
+
+function iSrv()
+	P("I:S")
+	WD.I=nil
+	collectgarbage()
+	dof("pin")
+	dof("command_const")
+	dof("command")
+	collectgarbage()
+	P("M:"..S(node.heap()))
+	sConn()
+	sDev()
+	P("I:End, M:"..S(node.heap()))
+end
+
+function WD.I()
+dl(0)
+wifi.setmode(cfg.wM)
+if cfg.wM~=wifi.NULLMODE then
+if cfg.wM==wifi.STATION then
+	if cfg.ipS then WS.setip(cfg) end
+	P("W:"..MAC.." "..WC[WCN].ssid)
+	WS.config(WC[WCN])
+	--WS.config(WC[WCN].ssid,WC[WCN].pwd,1)
+	WS.connect()
+	function wait_wifi()
+		dl(0)
+		local ip=WS.getip()
+		P(ip or "W:"..S(WS.status()))
+		if WS.status()==2 then
+			ip=cfg.ip
+			WS.setip(cfg)
+			P("E:PW, U S IP:"..ip)
+		elseif WS.status()==3 or WS.status()==4 then
+			ip=cfg.ip
+			WS.setip(cfg)
+			P("E:AP, U S IP:"..ip)
+		end
+		if (ip) then
+			tmr.stop(Wtmr)
+			P("L:"..ip..":"..Sp)
+			iSrv()
+		else
+			dl(1)
 		end
 	end
+	tmr.alarm(Wtmr,WtmrIv,1,wait_wifi)
+elseif cfg.wM==wifi.SOFTAP then
+	dl(1)
+	P("W:AP "..MAC.." "..WC[WCN].ssid)
+	wifi.ap.setip(cfg)
+	wifi.ap.config(WC[WCN])
+	local ip=cfg.ip
+	P("L:"..ip..":"..Sp)
+	dl(0)
+	iSrv()
 end
-
-function setupDevices()
-	for dev,params in pairs(config.devices) do
-		if dev=="hcsr" then
-			dofile("hcsr.lua") 
-			device_hcsr=hcsr.init(params["pin_trig"], params["pin_echo"], params["absorber"], params["tmr_id"], params["tmr_ms"]) 
-			PINS_state[device_hcsr.trig]["m"]=MODE_UNAVAILABLE
-			PINS_state[device_hcsr.echo]["m"]=MODE_ANALOG
-			device_hcsr.start()
-		end
-	end
 end
-
-function sendData(sck,data)
---	if string.len(data)==0 then
---		data=" "
---	end
-	print("< "..data)
-	data=data.."\n"
-	sck:send(data)
 end
-
-recv_cmd=""
-function receiveData(sck,data)
-	recv_cmd=recv_cmd..data
-	local a,b=string.find(recv_cmd,"\n",1,true)
-	local resp=""
-	while a do
-		local cmd=string.sub(recv_cmd,1,a-1)
-		local respA=exeCmd(cmd)
-		if string.len(resp)>0 then
-			resp=resp.."\n"
-		end
-		resp=resp..respA
-		recv_cmd=string.sub(recv_cmd,a+1,string.len(recv_cmd))
-		a,b=string.find(recv_cmd,"\n",1,true)
-	end
-	sendData(sck,resp)
-end
-
-function setupConnection()
-	if config.net_type==net.UDP then
-		dofile("conn_udp.lua")
-	elseif config.net_type==net.TCP then
-		dofile("conn_tcp.lua")
-	end
-	
-	initConnection(receiveData)
-end
-
-function setupFinished()
-	print("Setup finished, M: "..tostring(node.heap()))
-end
-
-function initServices()
-	dofile("pin.lua")
-	dofile("command_const.lua")
-	dofile("command.lua")
-	print("M: "..tostring(node.heap()))
-	setupConnection()
-	setupDevices()
-	setupFinished()
-end
-
-print("Init WiFi")
-wifi.setmode(config.wifiMode)
-if config.wifiMode~=wifi.NULLMODE then
-	if config.wifiMode==wifi.STATION then
-		if config.static_ip then
-			wifi.sta.setip(config)
-		end
-		print("Connecting WiFi... MAC="..MAC_ID.." SSID="..WIFI_CFG[WIFI_CFG_NAME].ssid)
-		wifi.sta.config(WIFI_CFG[WIFI_CFG_NAME].ssid,WIFI_CFG[WIFI_CFG_NAME].pwd,1)
-		wifi.sta.connect()
-
-		function wait_wifi()
-			local ip=wifi.sta.getip()
-			print(ip or "WiFi:"..tostring(wifi.sta.status()))
-			if wifi.sta.status()==2 then
-				ip=config.ip
-				print("WRONG PW, using static IP: "..ip)
-			elseif wifi.sta.status()==3 or wifi.sta.status()==4 then
-				ip=config.ip
-				print("NO/BAD AP, using static IP: "..ip)
-			end
-			if (ip) then
-				tmr.stop(WIFI_TMR)
-				print("Listening on "..ip..":"..SERVER_PORT)
-				initServices()
-			end
-		end
-
-		tmr.alarm(WIFI_TMR,WIFI_TMR_INTERVAL,1,wait_wifi)
-	elseif config.wifiMode==wifi.SOFTAP then
-		print("AP WiFi... MAC="..MAC_ID.." SSID="..WIFI_CFG[WIFI_CFG_NAME].ssid)
-		wifi.ap.setip(config)
-		wifi.ap.config(WIFI_CFG[WIFI_CFG_NAME])
-		local ip=config.ip
-		print("Listening on "..ip..":"..SERVER_PORT)
-		initServices()
-	end
-end
-
--- RELOAD PROTECTION BEGIN
-end
--- RELOAD PROTECTION END
+WD.I()
