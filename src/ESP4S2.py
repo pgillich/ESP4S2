@@ -388,6 +388,14 @@ def makeScratchHandler(conf):
             self.setConf(conf)
             BaseHTTPRequestHandler.__init__(self, *args)
 
+        def end_headers(self):
+            self.send_my_headers()
+
+            BaseHTTPRequestHandler.end_headers(self)
+
+        def send_my_headers(self):
+            self.send_header("Access-Control-Allow-Origin", "*")
+
         def setConf(self, conf):
             self.conf = conf
 
