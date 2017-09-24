@@ -418,6 +418,26 @@ def makeScratchHandler(conf):
 
             return response
 
+        def read(self, device_id, pin):
+            response = ""
+            if device_id in self.conf.espHandlersByDevice:
+                device = self.conf.espHandlersByDevice[device_id]
+                if pin in device.getPinValues():
+                    response = device.getPinValues()[pin]
+
+            return response
+
+        def digitalRead(self, device_id, pin):
+            value = self.read(device_id, pin)
+            digit = "false"
+            if self.conf.string2bool(value):
+                digit = "true"
+
+            return digit
+
+        def analogRead(self, device_id, pin):
+            return self.read(device_id, pin)
+
         def getFirmataPinMode(self, mode):
             return self.conf.mode2code(mode)
 
@@ -426,8 +446,8 @@ def makeScratchHandler(conf):
             device.putIn(command, [pin], exec_wait)
             return self.conf.RESPONSE_OK
 
-        def digitalWrite(self, device, pin, mode, exec_wait):
-            command = "digitalWrite " + str(pin) + " " + str(mode)
+        def digitalWrite(self, device, pin, value, exec_wait):
+            command = "digitalWrite " + str(pin) + " " + str(value)
             device.putIn(command, [pin], exec_wait)
             return self.conf.RESPONSE_OK
 
@@ -448,6 +468,11 @@ def makeScratchHandler(conf):
 
         def servoWrite(self, device, pin, value, exec_wait):
             command = "servoWrite " + str(pin) + " " + str(value)
+            device.putIn(command, [pin], exec_wait)
+            return self.conf.RESPONSE_OK
+
+        def printText(self, device, pin, value, exec_wait):
+            command = "print " + str(pin) + " " + str(value)
             device.putIn(command, [pin], exec_wait)
             return self.conf.RESPONSE_OK
 
@@ -548,6 +573,15 @@ def makeScratchHandler(conf):
                         elif cmd == "servoWrite":
                             resp_body = self.servoWrite(
                                 device, pin, int(command[5]), exec_wait)
+                        elif cmd == "print":
+                            resp_body = self.printText(
+                                device, pin, command[5], exec_wait)
+                        elif cmd == "digitalRead":
+                            resp_body = self.digitalRead(
+                                device, pin)
+                        elif cmd == "analogRead":
+                            resp_body = self.analogRead(
+                                device, pin)
                         else:
                             resp_code = 400
                             resp_body = "unknown command: " + str(command)

@@ -84,6 +84,11 @@ elseif d=="bmp085" then
 	bmp085.setup()
 	Dv[p.p[1]]=0
 	Dv[p.p[2]]=0
+elseif d=="oled" then
+	P("OLED:set")
+	dof("oled")
+	init_oled(p.p[1],p.p[2],p.sla)
+	oledText(0," (\\_/)%0a(='.'=)%0a(\")_(\")")
 elseif d=="tmr" then
 	P("TMR:set")
 	tmr.register(p.tid,p.tms,tmr.ALARM_SEMI,rDevs)
@@ -166,6 +171,7 @@ end
 
 function WD.I()
 dl(0)
+wifi.setphymode(WPM)
 wifi.setmode(cfg.wM)
 if cfg.wM~=wifi.NULLMODE then
 if cfg.wM==wifi.STATION then

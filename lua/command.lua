@@ -134,6 +134,8 @@ elseif #cc==3 then
 		else
 			pDuty(p,v)
 		end
+	elseif cmd=="print" then
+		oledText(p,cc[3])
 	end
 elseif #cc==4 then
 	local cmd=cc[1]

@@ -46,7 +46,7 @@ ESP4S2 is a project on ESP8266 NodeMCU with control by MIT Scratch 2 or RoboRemo
 
 The aim of this project is giving microcontroller control into hands of kids. The solution is inspired by [A4S](https://github.com/damellis/A4S) and [Firmata](https://github.com/firmata/protocol). Scratch or RoboRemo can be used as user interface. ESP4S2 is licensed under [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html).
 
-ESP8266 is a cheap microcontroller with built-in WiFi (SoC). See [IoT for $10](https://prezi.com/j9xhibnr7qbj/iot-for-10/) to execute a "Hello, World!" example. There are a lot of variants, examples are optimized for [WeMos D1 mini](https://www.wemos.cc/product/d1-mini.html).
+ESP8266 is a cheap microcontroller with built-in WiFi (SoC). See [IoT for $10](https://prezi.com/j9xhibnr7qbj/iot-for-10/) to execute a "Hello, World!" example. There are a lot of variants, below examples are optimized for [WeMos D1 mini](https://wiki.wemos.cc/products:d1:d1_mini).
 
 Hardware instructions for WeMos D1 mini and tank example are described at [instructables.com](http://www.instructables.com/id/Controlling-LEGO-Tank-by-ESP8266-With-Scratch-or-R/):
 ![Controlling LEGO Tank by ESP8266 With Scratch or RoboRemo](https://cdn.instructables.com/FI2/M1QL/IU9US0HZ/FI2M1QLIU9US0HZ.MEDIUM.jpg)
@@ -56,11 +56,13 @@ Software Components:
   * NodeMCU firmware _(required)_
   * __Controller__, written in Lua for executing control commands and providing sensor values _(required)_
   * H-bridge _(optional)_
-  * HC-SR04 _(optional)_
-* Scratch 2 Offline Editor: a programming interface _(optional)_
+  * sensors, for example: HC-SR04, DHT, BMP, OLED _(optional)_
+* Scratch 2: a programming interface _(optional)_
   * __Bridge__, a Scratch Extension written in Python _(required to Scratch)_
   * Python interpreter _(required to Scratch)_
 * Roboremo: a simple manual control interface on Android _(optional)_
+
+[Scratch 2.0 Offline Editor](https://wiki.scratch.mit.edu/wiki/Scratch_2.0_Offline_Editor) and [ScratchX](http://scratchx.org) are both supported.
 
 Example setups:
 ```
@@ -75,7 +77,7 @@ Example setups:
 |  +-----------+        +----------+  |  |    |              |      +----------+
 |                                     |  +--->|  Controller  +----->| H-bridge |
 |                                     |       |              |      +----------+
-+-------------------------------------+       +--------------+
++-------------------------------------+  UDP  +--------------+
 
 
                    +------------------+
@@ -84,7 +86,7 @@ Example setups:
                    |  +------------+  |       +--------------+  +-->| H-bridge |
                    |  |            |  | WiFi  |              +--+   +----------+
                    |  |  RoboRemo  +--------->|  Controller  |
-                   |  |            |  |       |              +--+   +----------+
+                   |  |            |  | UDP   |              +--+   +----------+
                    |  +------------+  |       +--------------+  +-->| HC-SR04  |
                    |                  |                             +----------+
                    |                  |       
@@ -116,6 +118,7 @@ Supported Scratch commands:
 - [x] `analog write pin pair` (`analogPairWrite`): NodeMCU command(s): `pwm.setduty`
 - [x] `tank write pin pair` (`tankWrite`): NodeMCU command(s): `pwm.setduty`
 - [ ] `servo write pair` (`servoWrite`): NodeMCU command(s): `gpio.write`
+- [x] `print text` (`servoWrite`): NodeMCU command(s): `u8g:drawStr`
 - [x] `digital read pin` (`digitalRead`): NodeMCU command(s): `gpio.read`
 - [x] `analog read pin` (`analogRead`): NodeMCU command(s): `adc.read` or custom sensor command
 - [x] ![Stop](doc/stop-sign-small.png) (`reset_all`): Reset state machine, NodeMCU command(s): `gpio.write`, `pwm.setduty`
@@ -154,10 +157,17 @@ Controller Features:
 - [x] Supporting more NodeMCUs in one WiFi network, for Bridge
 - [x] Supporting more NodeMCUs in one WiFi network, for RoboRemo (UDP broadcast)
 - [x] HC-SR04 sensor support
-- [ ] DHT sensor support
-- [ ] BMP180 sensor support
+- [x] DHT sensor support
+- [x] BMP180 sensor support
+- [x] OLED support
 
 ## Device and Sensor Extensions
+
+### ADC
+
+Using NodeMCU [ADC Module](http://nodemcu.readthedocs.io/en/master/en/modules/adc/). Only A0 pin is supported.
+
+Required NodeMCU modules: `adc`
 
 ### HC-SR04
 
@@ -170,10 +180,30 @@ Original source from: [node_hcsr04](https://github.com/sza2/node_hcsr04). Main c
 
 Trig time: min. 10 us. Max echo time: 38 ms. Usage: `dofile("hcsr.lua") device=hcsr.init() device.start()`, automatically called by `init.lua`, if `devices["hcsr"]` in `config.lua` is set properly.
 
+### DHT
+
+Using NodeMCU [DHT module](http://nodemcu.readthedocs.io/en/master/en/modules/dht/). Suggested pin for WeMos shield is: D4. Uses [dht.read()](http://nodemcu.readthedocs.io/en/master/en/modules/dht/#dhtread), which supports several kind of DHT sensors.
+
+Required NodeMCU modules: `dht`
+
+### BMP
+
+Using NodeMCU [BMP085 Module](http://nodemcu.readthedocs.io/en/master/en/modules/bmp085/). Suggested pins for WeMos are the WeMos I2C pins (D1, D2). It supports BMP-085 and BMP-180.
+
+Required NodeMCU modules: `bmp085`, `i2c`
+
+### OLED
+
+Using NodeMCU [u8g Module](http://nodemcu.readthedocs.io/en/master/en/modules/u8g/). Works with WeMos [OLED Shield](https://wiki.wemos.cc/products:d1_mini_shields:oled_shield) (ssd1306_64x48_i2C).
+
+Required NodeMCU modules: `u8g`, `i2c`, see [OLED Shield documentations](https://wiki.wemos.cc/products:d1_mini_shields:oled_shield#nodemcu_code)
+
 # Installation and Configuration
 
 ## Getting Repository
-Clone or download and extract repository from GitHub. Please read [LICENSE](LICENSE), TOC is created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc).
+Clone or download and extract repository from [GitHub](https://github.com/pgillich/ESP4S2). It can be downloaded as a zip file, or can have by a Git command, for example:
+```git clone https://github.com/pgillich/ESP4S2.git```
+Please read [LICENSE](LICENSE). TOC is created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc).
 
 ## Wiring
 [WeMos D1 mini](http://www.wemos.cc/Products/d1_mini.html) system has some additional resistors and dedicated pins for shields. These constraints determine a logical pinout:
@@ -193,15 +223,15 @@ Clone or download and extract repository from GitHub. Please read [LICENSE](LICE
 
 D8 pin works well with Pololu DRV8833 as B2 input, but activates motor B with cheap L9110 at power on. D3 works well with cheap L9110. I2C pins are used by WeMos shields [OLED](http://www.wemos.cc/Products/oled_shield.html) and [Motor](http://www.wemos.cc/Products/motor_shield.html).
 
-HC-SR04 needs 5V power, Echo pin output is 5V, too (3.3V input is good for Trig). A 4k7 with built-in 10k Pull-down resistor behave as a voltage divider, see: [HC-SR04 Ultrasonic Range Sensor on the Raspberry Pi](http://www.modmypi.com/blog/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi).
+HC-SR04 needs 5V power, Echo pin output is 5V, too (3.3V input is good for Trig). An additional 4k7 resistor with built-in 10k Pull-down resistor behave as a voltage divider, see: [HC-SR04 Ultrasonic Range Sensor on the Raspberry Pi](http://www.modmypi.com/blog/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi).
 
-Pin D4 is used by WeMos shields [DHT](http://www.wemos.cc/Products/dht_shield.html) and [DHT Pro](http://www.wemos.cc/Products/dht_pro_shield.html).
+Pin D4 is used by WeMos [D1 mini Shields](https://wiki.wemos.cc/products:d1_mini_shields).
 
 Other pinout can also be used.
 
 ## NodeMCU Firmware
-NodeMCU is an embedded Lua firmware to ESP8266. Firmware can be download from [NodeMCU custom builds](https://nodemcu-build.com/) (builds combined binary). For using H-bridge, PWM module must be selected. For using DHT sensor, DHT module must be selected. Integer build must be used.
-Firmware can be flashed by esptool.py or NodeMCU Flasher, see [Flashing the firmware](https://nodemcu.readthedocs.io/en/dev/en/flash/). Since 1.5.1-master, default baud is 115200 (instead of 9600).
+NodeMCU is an embedded Lua firmware to ESP8266. Firmware can be download from [NodeMCU custom builds](https://nodemcu-build.com/) (builds combined binary). For using PWM (for example: H-bridge), `pwm` module must be selected. Depending on applied sensors, more modules should be selected. Integer build must be downloaded.
+Firmware can be flashed by esptool.py or NodeMCU Flasher, see [Flashing the firmware](https://nodemcu.readthedocs.io/en/dev/en/flash/). For old boards, esptool.py might be more stable. Since 1.5.1-master, default baud is 115200 (instead of 9600).
 
 ## Controller
 Copy `secure.lua.example` to `secure.lua` and edit own WiFi authentication configuration. Keys supported by NodeMCU wifi are described at [wifi.ap Module](https://nodemcu.readthedocs.io/en/master/en/modules/wifi/#wifiapconfig).
@@ -244,7 +274,15 @@ tank-tower digitalWrite 4 1
 There are several online portals, where broadcast address can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). 
 
 ## Bridge
-Bridge requires Python 2.7. Bridge command line options will be printed out by `--help` parameter. Bridge listening port can be set by `--esp-listen-port`, its default value is `9877`. Controllers port can be set by `--esp-port`, its default value is `9876`.
+Bridge is required for Scratch 2. It makes simple overload protection on ESP devices. It makes sure, only one request is executed in same time. High-frequency polling by Scratch 2 HTTP Extension (1/30 s) is also eliminated. Batch command sending is also supported.  
+
+Bridge requires Python 2.7. Python `netaddr` is also required. Depending on the OS, install can be different, for example:
+```
+pip install netaddr
+sudo apt-get install python-netaddr
+```
+
+Bridge command line options will be printed out by `--help` parameter. Bridge listening port can be set by `--esp-listen-port`, its default value is `9877`. Controllers port can be set by `--esp-port`, its default value is `9876`.
 
 ### Windows install
 Python 2.7 can be downloaded and installed from [Python Releases for Windows](https://www.python.org/downloads/windows/). Example for starting Bridge:
@@ -252,7 +290,7 @@ Python 2.7 can be downloaded and installed from [Python Releases for Windows](ht
 `C:\Python27\python.exe -c src\ESP4S2.py`
 
 ### Cygwin install
-Pyton 2.7 package can be installed to [Cygwin](https://www.cygwin.com/). Example for starting Bridge:
+Pyton 2.7 package can be installed to [Cygwin](https://www.cygwin.com/), including `pip`, which is required to install `netaddr`. Example for starting Bridge:
 
 `src/ESP4S2.py`
 
@@ -262,7 +300,24 @@ Pyton 2.7 package installation is described at the Linux distributor. Example fo
 `src/ESP4S2.py`
 
 ## Scratch
-Install [Scratch 2 Offline Editor](https://scratch.mit.edu/scratch2download). Import ESP42S extension description `src/ESP4S2.s2e` (shift-click on "File" and select "Import Experimental Extension" from the menu). The new extension blocks will appear in the More Blocks palette.
+Scratch 2.0 Offline Editor and ScratchX are supported. Both of them need __Bridge__. 
+
+### Scratch 2 Offline Editor
+[Scratch 2 HTTP Extension](https://wiki.scratch.mit.edu/wiki/HTTP_Extension#HTTP_Extensions) is supported.
+
+Install [Scratch 2 Offline Editor](https://scratch.mit.edu/scratch2download). Import ESP42S extension description `src/ESP4S2.s2e` (shift-click on "File" and select "Import Experimental Extension" from the menu). The new extension blocks will be appeared in the More Blocks palette.
+
+### ScratchX
+ScratchX [Javascript Extension](https://github.com/LLK/scratchx/wiki) is supported. Scratch Device Plugin ( [Scratch Extensions Browser Plugin](https://scratch.mit.edu/info/ext_download) ) is not required.
+
+Open ScratchX link with reference to this extension: [http://scratchx.org/?url=https://pgillich.github.io/ESP4S2/js/extension.js](http://scratchx.org/?url=https://pgillich.github.io/ESP4S2/js/extension.js).
+
+It's possible to provide this extension locally, using a simple HTTP server. Example for running local HTTP web server from parent of cloned Git repository:
+```
+ESP4S2/src/CorsHTTPServer.py 80
+```
+In this case, the ScratchX link should be:
+http://scratchx.org/?url=http://localhost/ESP4S2/js/extension.js
 
 ## RoboRemo
 [RoboRemo](http://www.roboremo.com) can be installed for Android by [Google Play](https://play.google.com/store/apps/details?id=com.hardcodedjoy.roboremo). Commands are described in the chapter [Controller Command Reference](#controller-command-reference).
@@ -303,23 +358,6 @@ Blocks for full functionality looks too complex for young children. Simplified b
 With this limitations, each student can handle own named Controller.
 
 ### First steps
-Coming soon...
-
-### Blocks
-Coming soon...
-
-### LED project
-Coming soon...
-
-### PWM project
-Coming soon...
-
-### DC motor project
-Coming soon...
-
-## Scratch Advanced Programer's Guide
-
-### First steps
 After starting Bridge (`src/ESP4S2.py`) and loading ESP42S extension description (`src/ESP4S2.s2e`), Scratch is ready to create block programs. The first block which must be executed is the `Set network`. This block initializes Bridge and requests Controllers to send its names back for name resolution. Example for `Set network` block: ![initNet](doc/initNet.jpg), where `192.168.10.0` is the subnet ID and `24` is the subnet mask bits. There are several online portals, where subnet ID and subnet mask bits can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). At least one second must be wait to collect responses from Controllers, for example: ![wait1s](doc/wait1s.jpg).
 
 ### Blocks
@@ -337,9 +375,14 @@ H-bridged DC motors can be controlled by `analog write pin pair` block, for exam
 
 Two H-bridged DC motors can be controlled by `tank write pin quad` block, for example: ![tankWrite](doc/tankWrite.jpg). Four pins and XY values (joystick) must be set in interval [-100, 100]. Controller transforms XY values to A-B values.
 
+Text can be printed on display by block `print text`, for example: ![printOled](doc/printOled.png).
+
 Values can be used by blocks `digital read pin` and `analog read pin`, for example:
 * ![digitalRead](doc/digitalRead.jpg)
 * ![analogRead_cycle](doc/analogRead_cycle.jpg)
+
+## Sample projects 
+Sample projects are located in `project` directory. The Scratch 2 Offline Editor can read `sb2` files, ScratchX can read `sbx` files.
 
 ### LED project
 It's the "Hello, World!" example of microcontroller world. Built-in blue LED of WeMos is connected to pin `4`. Because of built-in pull-up resistor, LED behaves opposite. After starting Controller and Bridge, please create the below project:
@@ -369,6 +412,9 @@ Click on ![Stop](doc/stop-sign-small.png) to stop all pins.
 
 ### DC motor project
 This project demonstrates DC motor control using PWM and H-bridge. 
+
+## Scratch Advanced Programer's Guide
+
 
 ## Controller Command Reference
 
@@ -435,7 +481,7 @@ analogWrite 4 100
 
 Before using a PWM-mode pin in other mode, PWM clock must be stopped. It can be achieved by sending `-1` to the pin by `analogWrite`. It calls `pwm.stop(pin)` and `pwm.close(pin)`. Example for stop PWM on pin `4`:
 
-``` 
+```
 socat readline UDP4-DATAGRAM:192.168.10.103:9876,bind=:9877
 pinMode 4 3
 analogWrite 4 50
@@ -473,6 +519,14 @@ tankWrite 5 6 7 3 -100 0
 
 Not supported yet.
 
+### Print
+
+Command `print` draws given text on the display. It calls `u8g:drawStr`. Command syntax is: `print <id> <text>`. The parameter `id` parameter will be used for identify more displays in the future, currently it's skipped. The parameter `text` is an url-encoded text (UTF-8 is not supported). Endline (`\n`) is supported only by ScratchX. Example for printing a multiline text:
+
+```
+socat readline UDP4-DATAGRAM:192.168.10.105:9876,bind=:9877
+print 0 Hello%0aWORLD!
+```
 
 ### Analog Read
 
