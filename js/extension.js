@@ -56,7 +56,7 @@
     		return data;
     	}).fail( function(jqXHR, textStatus, errorThrown) {
     		console.log("fail: "+textStatus+": "+errorThrown);
-    		ext.hasBridge = false;
+    		// ext.hasBridge = false;
     		if (callback != null) {
     			callback(textStatus);
     		}
