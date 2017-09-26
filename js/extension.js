@@ -148,8 +148,7 @@
     	return sendRequest("servoWrite/"+exec_wait+"/"+device+"/"+pin+"/"+value);
     };
 
-    ext.print = function(exec_wait, device, value) {
-    	var pin = "0";
+    ext.print = function(exec_wait, device, pin, value) {
     	var text = encodeURIComponent(value.replace(/\\n/g, "\\n"))
     	return sendRequest("print/"+exec_wait+"/"+device+"/"+pin+"/"+text);
     };
@@ -180,7 +179,7 @@
     		[" ", "%m.execWait On %s pins (%n %n ) PWM motor= %n", "analogPairWrite", "E", "tank-tower", 5, 6, 0],
     		[" ", "%m.execWait On %s pins (%n %n %n %n ) PWM tank= (%n %n )", "tankWrite", "E", "tank-chassis", 5, 6, 7, 3, 0, 0],
     		[" ", "%m.execWait On %s pin %n servo degrees= %n", "servoWrite", "E", "tank-tower", 5, 180],
-    		[" ", "%m.execWait On %s print %s", "print", "E", "oled", "Hello"],
+    		[" ", "%m.execWait On %s pin %n print %s", "print", "E", "oled", 0, "Hello"],
     		["b", "On %s pin %n digital?", "digitalRead", "met", 0],
     		["r", "On %s pin %n analog?", "analogRead", "met", 0],
         ],

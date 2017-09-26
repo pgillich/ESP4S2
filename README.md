@@ -1,50 +1,60 @@
 ESP4S2 is a project on ESP8266 NodeMCU with control by MIT Scratch 2 or RoboRemo.
--
-  * [Introduction](#introduction)
-    * [Feature List](#feature-list)
-  * [Installation and Configuration](#installation-and-configuration)
-    * [Getting Repository](#getting-repository)
-    * [Wiring](#wiring)
-    * [NodeMCU Firmware](#nodemcu-firmware)
-    * [Controller](#controller)
+
+* [Introduction](#introduction)
+   * [Feature List](#feature-list)
+   * [Device and Sensor Extensions](#device-and-sensor-extensions)
+      * [ADC](#adc)
+      * [HC-SR04](#hc-sr04)
+      * [DHT](#dht)
+      * [BMP](#bmp)
+      * [OLED](#oled)
+* [Installation and Configuration](#installation-and-configuration)
+   * [Getting Repository](#getting-repository)
+   * [Wiring](#wiring)
+   * [NodeMCU Firmware](#nodemcu-firmware)
+   * [Controller](#controller)
+      * [Configuration](#configuration)
+      * [Uploading files](#uploading-files)
       * [Socat](#socat)
-    * [Bridge](#bridge)
+   * [Bridge](#bridge)
       * [Windows install](#windows-install)
       * [Cygwin install](#cygwin-install)
       * [Linux install](#linux-install)
-    * [Scratch](#scratch)
-    * [RoboRemo](#roboremo)
+   * [Scratch](#scratch)
+      * [Scratch 2 Offline Editor](#scratch-2-offline-editor)
+      * [ScratchX](#scratchx)
+   * [RoboRemo](#roboremo)
       * [Single Controller](#single-controller)
       * [Multiple Controllers](#multiple-controllers)
-  * [Programer's Guides](#programers-guides)
-    * [Scratch Beginner Programer's Guide](#scratch-beginner-programers-guide)
+* [Programer's Guides](#programers-guides)
+   * [Scratch Beginner Programer's Guide](#scratch-beginner-programers-guide)
       * [First steps](#first-steps)
       * [Blocks](#blocks)
+   * [Sample projects](#sample-projects)
       * [LED project](#led-project)
       * [PWM project](#pwm-project)
       * [DC motor project](#dc-motor-project)
-    * [Scratch Advanced Programer's Guide](#scratch-advanced-programers-guide)
-      * [First steps](#first-steps-1)
-      * [Blocks](#blocks-1)
-      * [LED project](#led-project-1)
-      * [PWM project](#pwm-project-1)
-      * [DC motor project](#dc-motor-project-1)
-    * [Controller Command Reference](#controller-command-reference)
+   * [Scratch Advanced Programer's Guide](#scratch-advanced-programers-guide)
+   * [Controller Command Reference](#controller-command-reference)
       * [Get Controller Name](#get-controller-name)
       * [Set Pin Mode](#set-pin-mode)
       * [Digital Read](#digital-read)
       * [Digital Write](#digital-write)
       * [PWM Write](#pwm-write)
+      * [Stop PWM](#stop-pwm)
       * [PWM Pair Write](#pwm-pair-write)
       * [Tank Write](#tank-write)
       * [Servo Write](#servo-write)
+      * [Print](#print)
       * [Analog Read](#analog-read)
       * [Poll](#poll)
       * [Reset All](#reset-all)
 
+
 # Introduction
 
 The aim of this project is giving microcontroller control into hands of kids. The solution is inspired by [A4S](https://github.com/damellis/A4S) and [Firmata](https://github.com/firmata/protocol). Scratch or RoboRemo can be used as user interface. ESP4S2 is licensed under [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html).
+Please read [LICENSE](LICENSE). TOC is created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc).
 
 ESP8266 is a cheap microcontroller with built-in WiFi (SoC). See [IoT for $10](https://prezi.com/j9xhibnr7qbj/iot-for-10/) to execute a "Hello, World!" example. There are a lot of variants, below examples are optimized for [WeMos D1 mini](https://wiki.wemos.cc/products:d1:d1_mini).
 
@@ -86,8 +96,8 @@ Example setups:
                    |  +------------+  |       +--------------+  +-->| H-bridge |
                    |  |            |  | WiFi  |              +--+   +----------+
                    |  |  RoboRemo  +--------->|  Controller  |
-                   |  |            |  | UDP   |              +--+   +----------+
-                   |  +------------+  |       +--------------+  +-->| HC-SR04  |
+                   |  |            |  |       |              +--+   +----------+
+                   |  +------------+  |  UDP  +--------------+  +-->| HC-SR04  |
                    |                  |                             +----------+
                    |                  |       
                    +------------------+              
@@ -139,11 +149,11 @@ Bridge Features:
 
 Controller Features:
 - [x] Basic digital pin handling (mode, high/low, PWM)
-- [ ] `analogRead`: `adc.read` registers value to D16 (virtual) ###
+- [ ] `analogRead`: `adc.read` reads value to a pseudo pin
 - [x] `analogPairWrite`: transforms a [-100,+100] value to 2 pins of H-bridge for a DC motor 
 - [x] `tankWrite`: transforms a joystick XY value pair ([-100,+100], [-100,+100]) to A-B pins of H-bridge for 2 DC motor 
 - [x] Stop PWM on a pin, if value is -1 (`analog write pin -1`)
-- [x] `getName`: returns Bridge name 
+- [x] `getName`: returns Controller name 
 - [ ] Too small PWM value is overwritten to 0 (for DC motors)
 - [x] Too small PWM value is overwritten to 0 (for tank)
 - [x] WiFi station and AP mode
@@ -154,6 +164,7 @@ Controller Features:
 - [x] UDP
 - [ ] Send values back to RoboRemo
 - [ ] TCP
+- [ ] HTTP
 - [x] Supporting more NodeMCUs in one WiFi network, for Bridge
 - [x] Supporting more NodeMCUs in one WiFi network, for RoboRemo (UDP broadcast)
 - [x] HC-SR04 sensor support
@@ -171,7 +182,7 @@ Required NodeMCU modules: `adc`
 
 ### HC-SR04
 
-Original source from: [node_hcsr04](https://github.com/sza2/node_hcsr04). Main change: replacing tmr.delay to tmr.alert. Optimized for [WeMos D1 mini](http://www.wemos.cc/Products/d1_mini.html). Sensor pins:
+Original source from: [node_hcsr04](https://github.com/sza2/node_hcsr04). Main change: replacing tmr.delay to tmr.alert. Optimized for [WeMos D1 mini](https://wiki.wemos.cc/products:d1:d1_mini). Sensor pins:
 - ECHO: D8 (GPIO15) pulled down by 10k (R2) on WeMos D1 mini. R1 between ECHO and D8 as voltage divider: 4k7, see more:
  [HC-SR04 Ultrasonic Range Sensor on the Raspberry Pi](http://www.modmypi.com/blog/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi)
 - TRIG: D0 (GPIO16). Can only be used as gpio read/write. No support for open-drain/interrupt/pwm/i2c/ow.
@@ -202,11 +213,12 @@ Required NodeMCU modules: `u8g`, `i2c`, see [OLED Shield documentations](https:/
 
 ## Getting Repository
 Clone or download and extract repository from [GitHub](https://github.com/pgillich/ESP4S2). It can be downloaded as a zip file, or can have by a Git command, for example:
-```git clone https://github.com/pgillich/ESP4S2.git```
-Please read [LICENSE](LICENSE). TOC is created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc).
+```
+git clone https://github.com/pgillich/ESP4S2.git
+```
 
 ## Wiring
-[WeMos D1 mini](http://www.wemos.cc/Products/d1_mini.html) system has some additional resistors and dedicated pins for shields. These constraints determine a logical pinout:
+[WeMos D1 mini](https://wiki.wemos.cc/products:d1:d1_mini) system has some additional resistors and dedicated pins for shields, see [D1 mini Schematic](https://wiki.wemos.cc/_media/products:d1:mini_new_v2_2_0.pdf). These constraints determine a logical pinout:
 
 | ESP-8266 Pin| Pin | WeMos Function | suggested ESP4S2 Function
 | --- | --- | ---  | --- 
@@ -221,11 +233,11 @@ Please read [LICENSE](LICENSE). TOC is created by [gh-md-toc](https://github.com
 | GPIO13 | D7 | IO, MOSI        | H-bridge B1
 | GPIO15 | D8 | IO, SS<br/>10k Pull-down | HC-SR04 Echo<br/>+ 4k7: 5V-->3.3V voltage divider
 
-D8 pin works well with Pololu DRV8833 as B2 input, but activates motor B with cheap L9110 at power on. D3 works well with cheap L9110. I2C pins are used by WeMos shields [OLED](http://www.wemos.cc/Products/oled_shield.html) and [Motor](http://www.wemos.cc/Products/motor_shield.html).
+D8 pin works well with Pololu DRV8833 as B2 input, but activates motor B with cheap L9110 at power on. D3 works well with cheap L9110. I2C pins are used by WeMos shields [OLED](https://wiki.wemos.cc/products:d1_mini_shields:oled_shield) and [DC Power](https://wiki.wemos.cc/products:d1_mini_shields:dc_power_shield).
 
 HC-SR04 needs 5V power, Echo pin output is 5V, too (3.3V input is good for Trig). An additional 4k7 resistor with built-in 10k Pull-down resistor behave as a voltage divider, see: [HC-SR04 Ultrasonic Range Sensor on the Raspberry Pi](http://www.modmypi.com/blog/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi).
 
-Pin D4 is used by WeMos [D1 mini Shields](https://wiki.wemos.cc/products:d1_mini_shields).
+Pin D4 is used by WeMos [D1 mini Shields](https://wiki.wemos.cc/products:d1_mini_shields), for example [DHT Shield(Retired)](https://wiki.wemos.cc/products:retired:dht_shield_v1.0.0).
 
 Other pinout can also be used.
 
@@ -234,20 +246,80 @@ NodeMCU is an embedded Lua firmware to ESP8266. Firmware can be download from [N
 Firmware can be flashed by esptool.py or NodeMCU Flasher, see [Flashing the firmware](https://nodemcu.readthedocs.io/en/dev/en/flash/). For old boards, esptool.py might be more stable. Since 1.5.1-master, default baud is 115200 (instead of 9600).
 
 ## Controller
-Copy `secure.lua.example` to `secure.lua` and edit own WiFi authentication configuration. Keys supported by NodeMCU wifi are described at [wifi.ap Module](https://nodemcu.readthedocs.io/en/master/en/modules/wifi/#wifiapconfig).
 
+### Configuration
 
-Copy `config.lua.example` to `config.lua` and edit network configuration. 
+Security configuration is stored in `secure.lua`. Be very careful about information stored in this file. 
 
-* Controller supports more WiFi network configuration, selected by `WIFI_CFG_NAME`. Keys supported by NodeMCU wifi library, with examples:
-**  ip = "192.168.0.111",
-**  netmask = "255.255.255.0",
-**  gateway = "192.168.0.1"
+Copy `secure.lua.example` to `secure.lua` and edit own WiFi authentication configuration.  Structure of `secure.lua`:
 
-* Controllers are identified by its MAC address. STATION and AP mode are supported. In STATION mode (`wifiMode=wifi.STATION`), Controller requests an IP address from a WiFi AP (a WiFi router or an ESP8266 in SOFTAP or STATIONAP mode). If WiFi AP is not alive, `ip` parameter will be used. If `static_ip=true`, Controller enforces `ip` as IP address (`netmask` should be declared, too). In SOFTAP mode (`wifiMode=wifi.SOFTAP`), NodeMCU runs as WiFi AP and WiFi router is not required for WiFi communication. Other Controllers in this WiFi network should be configured with static IP address (`static_ip=true`). 
+* `WC`
+  * User-friendly name of network profile 
+    * `ssid`
+    * `pwd`
+    * any other key supported by NodeMCU `wifi` module, described at [wifi.ap Module](https://nodemcu.readthedocs.io/en/master/en/modules/wifi/#wifiapconfig), for example `auth` is required for AP.
 
-* The Controller listening port can be set by `ROBOREMO_PORT`, its default value is `9876`. Sensors with custom feature can be configured in `devices`.
+Other configurations are stored in config.lua. Controllers are identified by its MAC address. STATION and AP mode are supported. In STATION mode (`wM=wifi.STATION`), Controller requests an IP address from a WiFi AP (can be a WiFi router or an ESP8266 in SOFTAP or STATIONAP mode). If WiFi AP is not alive, `ip` parameter will be used. If `ipS=true`, Controller enforces `ip` as IP address (`netmask` should be and `gateway` might be declared, too, see [wifi.sta.setip](http://nodemcu.readthedocs.io/en/master/en/modules/wifi/#wifistasetip) ). In SOFTAP mode (`wM=wifi.SOFTAP`), NodeMCU runs as WiFi AP and WiFi router is not required for WiFi communication. Other Controllers in this WiFi network should be configured with static IP address (`ipS=true`). 
 
+Copy `config.lua.example` to `config.lua` and edit network configuration. Structure of `config.lua`:
+
+* `WCN`: User-friendly name of active network profile. Other network profiles will be cleaned in runtime.
+* `RRP`: RoboRemo port (listening port)
+* `DL`: Debug led. If it's non-zero, it blinks during initialization and network communications.
+* `WPM`: WiFi physical mode, see: [wifi.setphymode](https://nodemcu.readthedocs.io/en/master/en/modules/wifi/#wifisetphymode)
+* `MC`: Configuration for each Controller
+   * User-friendly name of network profile
+     * MAC address without `:` separator (can print by command `=wifi.sta.getmac()`)
+       * `name`: Controller name, used as device name in Scratch blocks
+       * `wM`: WiFi mode, see [wifi.setmode](https://nodemcu.readthedocs.io/en/master/en/modules/wifi/#wifisetmode)
+       * `ip`: IP address in AP mode or in static IP forcing or failsafe mode
+       * `ipS`: Activates static IP forcing (only in `wifi.STATION` mode)
+       * `netmask`: IP netmask
+       * `nT`: Networking type (onyl net.UDP is supported)
+       * `l`: Listener
+         * `p`: Listening port (receiving)
+         * `s`: Sending response to port (transmitting)
+       * `d`: Device (sensor) configurations, see later
+       * `t`: Tank configurations (tank write)
+         * `xc`: X correction (RoboRemo)
+         * `yc`: Y correction (RoboRemo)
+         * `vm`: Value min (lower will be 0)
+
+Device (sensor) configuration can be set at section `MC`._NetProfile.MAC_.`d` of file `config.lua`. Most of devices (sensors) are polled by a timer (except HC-SR), called `tmr`, which also must be configured. Structure of device section:
+  * `d`: Device (sensor) configurations
+    * `tmr`: Timer for device polling (except HC-SR)
+      * `tid`: Timer id, see: [tmr.alarm](https://nodemcu.readthedocs.io/en/master/en/modules/tmr/#tmralarm)
+      * `tms`: Timer interval in milliseconds
+    * `hdt`: DHT sensor
+      * `p`: Pins
+        * Data pin, reporting temperature
+        * Pseudo pin for reporing humidity
+    * `bmp085`: Pressure sensor
+      * `p`: I2C pins
+        * SDA, reporting temperature
+        * SCL, reporting pressure
+      * `o`: Oversampling, see: [bmp085.pressure](https://nodemcu.readthedocs.io/en/master/en/modules/bmp085/#bmp085pressure)
+    * `oled`: OLED display
+      * `p`: I2C pins
+        * SDA, reporting temperature
+        * SCL, reporting pressure
+      * `sla`: I2C address, see: WeMos [OLED Shield](https://wiki.wemos.cc/products:d1_mini_shields:oled_shield)
+      * `w`: display width in character
+      * `h`: display height in character 
+    * `hcsr`: HC-SR sensor
+      * `p`: Pins
+        * Trig, reporting time
+        * Echo, reporting distance
+      * `a`: Absorber (higher is stronger)
+      * `tid`: Timer id
+      * `tms`: Timer interval in milliseconds
+    * `adc`: A/D converter on pin A0
+      * `p`: Pins
+        * Pseudo pin for reporting
+
+Pseudo pins must be higher than 12.
+
+### Uploading files
 [ESPlorer](http://esp8266.ru/esplorer/) can be used to upload Lua files to ESP. Upload all `*.lua` files of directory `lua` to NodeMCU. After reset, NodeMCU will be ready to receive commands and send back input values.
 
 ### Socat
@@ -271,10 +343,10 @@ tank-tower digitalWrite 4 0
 tank-tower digitalWrite 4 1
 ```
 
-There are several online portals, where broadcast address can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). 
+There are several online portals, where broadcast address can be calculated, for example: [IP Subnet Calculator](http://www.subnet-calculator.com/). 
 
 ## Bridge
-Bridge is required for Scratch 2. It makes simple overload protection on ESP devices. It makes sure, only one request is executed in same time. High-frequency polling by Scratch 2 HTTP Extension (1/30 s) is also eliminated. Batch command sending is also supported.  
+Bridge is required for Scratch 2. It makes simple overload protection on ESP devices. It makes sure, only one request is executed in same time. High-frequency polling by Scratch 2 HTTP Extension (1/30 s) is also eliminated. Batch command sending is supported.  
 
 Bridge requires Python 2.7. Python `netaddr` is also required. Depending on the OS, install can be different, for example:
 ```
@@ -310,14 +382,23 @@ Install [Scratch 2 Offline Editor](https://scratch.mit.edu/scratch2download). Im
 ### ScratchX
 ScratchX [Javascript Extension](https://github.com/LLK/scratchx/wiki) is supported. Scratch Device Plugin ( [Scratch Extensions Browser Plugin](https://scratch.mit.edu/info/ext_download) ) is not required.
 
-Open ScratchX link with reference to this extension: [http://scratchx.org/?url=https://pgillich.github.io/ESP4S2/js/extension.js](http://scratchx.org/?url=https://pgillich.github.io/ESP4S2/js/extension.js).
+Open ScratchX link with reference to this extension: http://scratchx.org/?url=https://pgillich.github.io/ESP4S2/js/extension.js .
 
 It's possible to provide this extension locally, using a simple HTTP server. Example for running local HTTP web server from parent of cloned Git repository:
-```
-ESP4S2/src/CorsHTTPServer.py 80
-```
-In this case, the ScratchX link should be:
+
+`ESP4S2/src/CorsHTTPServer.py 80`
+
+In this case, the ScratchX link should be like:
 http://scratchx.org/?url=http://localhost/ESP4S2/js/extension.js
+
+It is possible to provide ScratchX locally (offline). In order to achieve it, ScratchX Git repository must have, example for cloning:
+```
+git clone https://github.com/LLK/scratchx.git
+cd scratchx
+python -m SimpleHTTPServer
+```
+In this case, the ScratchX link should be like:
+http://localhost:8000/?url=http://localhost/ESP4S2/js/extension.js
 
 ## RoboRemo
 [RoboRemo](http://www.roboremo.com) can be installed for Android by [Google Play](https://play.google.com/store/apps/details?id=com.hardcodedjoy.roboremo). Commands are described in the chapter [Controller Command Reference](#controller-command-reference).
@@ -344,21 +425,16 @@ Example slider for a H-bridged DC motor on pins 5, 6:
 * set repeat period: `500` ms
 
 ### Multiple Controllers
-RoboRemo cannot connect to multiple IP addresses. In this case, the boradcast IP address of subnet can be used. For example, if the subnet is 192.168.10.0/24, the broadcast address is 192.168.10.255. There are several online portals, where broadcast address can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). The command sending to this address will be received by all of Controllers. The target Controller name must be marked by the beginning of the command, for example: `tank-tower pinMode 4 1`, `tank-tower digitalWrite 4 0`, `tank-tower digitalWrite 4 1`. Without marking the Controller name, all Controllers will execute the command. 
+RoboRemo cannot connect to multiple IP addresses. In this case, the boradcast IP address of subnet can be used. For example, if the subnet is 192.168.10.0/24, the broadcast address is 192.168.10.255. There are several online portals, where broadcast address can be calculated, for example: [IP Subnet Calculator](http://www.subnet-calculator.com/). The command sending to this address will be received by all of Controllers. The target Controller name must be marked by the beginning of the command, for example: `tank-tower pinMode 4 1`, `tank-tower digitalWrite 4 0`, `tank-tower digitalWrite 4 1`. Without marking the Controller name, all Controllers will execute the command. 
 
 # Programer's Guides
 
 ## Scratch Beginner Programer's Guide
 
-Blocks for full functionality looks too complex for young children. Simplified blocks are created for them in order to have experience on microcontrollers. These Blocks have some limitations, for example:
-* Only one Controller is supported.
-* Pin groups must be named for group operations (for example: `analogPairWrite`, `tankWrite`).
-* Waiting for next command (`W`) is not supported.
-
-With this limitations, each student can handle own named Controller.
+Below sections describe Scratch blocks and provides a few example projects.
 
 ### First steps
-After starting Bridge (`src/ESP4S2.py`) and loading ESP42S extension description (`src/ESP4S2.s2e`), Scratch is ready to create block programs. The first block which must be executed is the `Set network`. This block initializes Bridge and requests Controllers to send its names back for name resolution. Example for `Set network` block: ![initNet](doc/initNet.jpg), where `192.168.10.0` is the subnet ID and `24` is the subnet mask bits. There are several online portals, where subnet ID and subnet mask bits can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). At least one second must be wait to collect responses from Controllers, for example: ![wait1s](doc/wait1s.jpg).
+After starting Bridge (`src/ESP4S2.py`) and Scratch with extension, it is ready to create block programs. The first block which must be executed is the `Set network` (only once). This block initializes Bridge and requests Controllers to send its names back for name resolution. Example for `Set network` block: ![initNet](doc/initNet.jpg), where `192.168.10.0` is the subnet ID and `24` is the subnet mask bits. There are several online portals, where subnet ID and subnet mask bits can be calculated, for example: [http://www.subnet-calculator.com/](IP Subnet Calculator). At least one second must be wait to collect responses from Controllers, for example: ![wait1s](doc/wait1s.jpg).
 
 ### Blocks
 Pin mode must be set before using a pin (`set pin`). A block can be executed immediately (`E`) or with the next (`W`). More blocks can be bundled to one group until the first `E` block. The last block of execution bundle must be `E`. Examples for bundled blocks:
@@ -369,7 +445,7 @@ The simplest control block is the `digital write pin`. See examples for controll
 * ![digitalWrite_high](doc/digitalWrite_high.jpg)
 * ![digitalWrite_low](doc/digitalWrite_low.jpg)
 
-PWM can be controlled by block `analog write pin`, for example: ![analogWrite](doc/analogWrite.jpg).
+PWM can be controlled by block `analog write pin`, for example: ![analogWrite](doc/analogWrite.jpg). Sending -1 will stop PWM on the pin.
 
 H-bridged DC motors can be controlled by `analog write pin pair` block, for example: ![analogPairWrite](doc/analogPairWrite.jpg). The value must be set in interval [-100, 100].
 

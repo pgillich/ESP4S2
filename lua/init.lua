@@ -13,7 +13,7 @@ WS=wifi.sta
 Wtmr=0
 WtmrIv=1000
 connL=nil
-dHcsr=nil
+--dHcsr=nil
 
 if iLD~=nil then
 P("E:init ALR.LD")
