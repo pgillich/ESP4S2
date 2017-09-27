@@ -123,7 +123,7 @@ return ""
 end
 
 function sDt(sck,d,port,ip)
-P("<"..ip.." "..d)
+if d~="" then P("<"..ip.." "..d) end
 if cfg.l["s"]~=nil then port=cfg.l.s end
 sck:send(port,ip,d.."\n")
 end

@@ -90,7 +90,7 @@ end
 
 function exeCmd(st)
 local r=""
-P("> "..st)
+if st~="poll" then P("> "..st) end
 local cc=csplit(st," ")
 if #cc>1 then
 	if cfg.name==cc[1] then
@@ -106,6 +106,8 @@ end
 if #cc==1 then
 	local cmd=cc[1]
 	if cmd=="reset_all" then
+		resetAll()
+	elseif cmd=="reset" then
 		resetAll()
 	elseif cmd=="getName" then
 		r=getName()

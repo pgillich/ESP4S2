@@ -10,6 +10,7 @@
 	ext.subnet = null;
 	ext.polls = {};
 	ext.pollIval = 500;
+	ext.device = "";
 	
     // Cleanup function when the extension is unloaded
     ext._shutdown = function() {
@@ -115,60 +116,61 @@
     	return sendRequest("reset_all", handleResetAll);
     };
 
-    ext.reset = function(device) {
-    	return sendRequest("reset/"+device, handleResetAll);
+    ext.reset = function() {
+    	return sendRequest("reset/"+ext.device, handleResetAll);
     };
 
     ext.poll = function() {
     	return sendRequest("poll", handlePoll);
     };
 
-    ext.initNet = function(net, maskBits) {
+    ext.initNet = function(net, maskBits, device) {
     	ext.subnet = net+"/"+maskBits;
+    	ext.device = device;
     	return sendRequest("initNet/"+ext.subnet);
     };
 
-    ext.pinMode = function(exec_wait, device, pin, mode) {
-    	return sendRequest("pinMode/"+exec_wait+"/"+device+"/"+pin+"/"+mode);
+    ext.pinMode = function(pin, mode) {
+    	return sendRequest("pinMode/E/"+ext.device+"/"+pin+"/"+mode);
     };
 
-    ext.digitalWrite = function(exec_wait, device, pin, value) {
-    	return sendRequest("digitalWrite/"+exec_wait+"/"+device+"/"+pin+"/"+value);
+    ext.digitalWrite = function(pin, value) {
+    	return sendRequest("digitalWrite/E/"+ext.device+"/"+pin+"/"+value);
     };
 
-    ext.analogWrite = function(exec_wait, device, pin, value) {
-    	return sendRequest("analogWrite/"+exec_wait+"/"+device+"/"+pin+"/"+value);
+    ext.analogWrite = function(pin, value) {
+    	return sendRequest("analogWrite/E/"+ext.device+"/"+pin+"/"+value);
     };
 
-    ext.analogPairWrite = function(exec_wait, device, pin1, pin2, value) {
-    	return sendRequest("analogPairWrite/"+exec_wait+"/"+device+"/"+pin1+"/"+pin2+"/"+value);
+    ext.analogPairWrite = function(pin1, pin2, value) {
+    	return sendRequest("analogPairWrite/E/"+ext.device+"/"+pin1+"/"+pin2+"/"+value);
     };
 
-    ext.tankWrite = function(exec_wait, device, pin1, pin2, pin3, pin4, valueX, valueY) {
-    	return sendRequest("tankWrite/"+exec_wait+"/"+device+"/"+pin1+"/"+pin2+"/"+pin3+"/"+pin4+"/"+valueX+"/"+valueY);
+    ext.tankWrite = function(pin1, pin2, pin3, pin4, valueX, valueY) {
+    	return sendRequest("tankWrite/E/"+ext.device+"/"+pin1+"/"+pin2+"/"+pin3+"/"+pin4+"/"+valueX+"/"+valueY);
     };
 
-    ext.servoWrite = function(exec_wait,  device, pin, value) {
-    	return sendRequest("servoWrite/"+exec_wait+"/"+device+"/"+pin+"/"+value);
+    ext.servoWrite = function(pin, value) {
+    	return sendRequest("servoWrite/E/"+ext.device+"/"+pin+"/"+value);
     };
 
-    ext.print = function(exec_wait, device, pin, value) {
+    ext.print = function(pin, value) {
     	var text = encodeURIComponent(value.replace(/\\n/g, "\\n"))
-    	return sendRequest("print/"+exec_wait+"/"+device+"/"+pin+"/"+text);
+    	return sendRequest("print/E/"+ext.device+"/"+pin+"/"+text);
     };
 
-    ext.digitalRead = function(device, pin, callback) {
+    ext.digitalRead = function(pin, callback) {
     	try {
-    		var value = ext.polls["digitalRead"][device][pin];
+    		var value = ext.polls["digitalRead"][ext.device][pin];
     		console.log("digitalRead="+value);
     		return (value == "true" || value == "1");
     	} finally {}
     	return "";
     };
 
-    ext.analogRead = function(device, pin, callback) {
+    ext.analogRead = function(pin, callback) {
     	try {
-    		return ext.polls["analogRead"][device][pin];
+    		return ext.polls["analogRead"][ext.device][pin];
     	} finally {}
     	return "";
     };
@@ -176,17 +178,17 @@
     // Block and block menu descriptions
     var descriptor = {
         blocks: [
-    		[" ", "Set network %s / %n", "initNet", "192.168.10.0", "24"],
-    		[" ", "Reset On %s", "reset", "tank-tower"],
-    		[" ", "%m.execWait On %s pin %n mode= %m.mode", "pinMode", "E", "met", 4, "Digital Input"],
-    		[" ", "%m.execWait On %s pin %n digital= %m.highLow", "digitalWrite", "E", "tank-tower", 4, "High"],
-    		[" ", "%m.execWait On %s pin %n PWM= %n", "analogWrite", "E", "tank-tower", 5, 100],
-    		[" ", "%m.execWait On %s pins (%n %n ) PWM motor= %n", "analogPairWrite", "E", "tank-tower", 5, 6, 0],
-    		[" ", "%m.execWait On %s pins (%n %n %n %n ) PWM tank= (%n %n )", "tankWrite", "E", "tank-chassis", 5, 6, 7, 3, 0, 0],
-    		[" ", "%m.execWait On %s pin %n servo degrees= %n", "servoWrite", "E", "tank-tower", 5, 180],
-    		[" ", "%m.execWait On %s pin %n print %s", "print", "E", "oled", 0, "Hello"],
-    		["b", "On %s pin %n digital?", "digitalRead", "met", 0],
-    		["r", "On %s pin %n analog?", "analogRead", "met", 15],
+    		[" ", "Set network %s / %n On %s", "initNet", "192.168.10.0", "24", "tank"],
+    		[" ", "Reset", "reset1"],
+    		[" ", "pin %n mode= %m.mode", "pinMode", 4, "Digital Input"],
+    		[" ", "pin %n digital= %m.highLow", "digitalWrite", 4, "High"],
+    		[" ", "pin %n PWM= %n", "analogWrite", 5, 100],
+    		[" ", "pins (%n %n ) PWM motor= %n", "analogPairWrite", 5, 6, 0],
+    		[" ", "pins (%n %n %n %n ) PWM tank= (%n %n )", "tankWrite", 5, 6, 7, 3, 0, 0],
+    		[" ", "pin %n servo degrees= %n", "servoWrite", 5, 180],
+    		[" ", "pin %n print %s", "print", 0, "Hello"],
+    		["b", "pin %n digital?", "digitalRead", 0],
+    		["r", "pin %n analog?", "analogRead", 15],
         ],
         menus: {
     		mode: ["Digital Input", "Digital Output","Analog Input","Analog Output(PWM)","Servo"],

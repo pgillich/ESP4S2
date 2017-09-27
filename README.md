@@ -133,7 +133,7 @@ Supported Scratch commands:
 - [x] `analog read pin` (`analogRead`): NodeMCU command(s): `adc.read` or custom sensor command
 - [x] ![Stop](doc/stop-sign-small.png) (`reset_all`): Reset state machine, NodeMCU command(s): `gpio.write`, `pwm.setduty`
 - [x] `poll`: return cached values of `digitalRead`, `analogRead`
-- [ ] Simplified Block commands
+- [x] Simplified Block commands
 
 Bridge Features:
 - [x] Supporting more NodeMCUs in one WiFi network
@@ -144,7 +144,6 @@ Bridge Features:
 - [x] Overload protection by rare poll and caching digitalRead/analogRead values
 - [ ] Overload protection by queue size limitation (drop) 
 - [x] Name resolution (instead of IP address) 
-- [ ] Simplified Block commands
 - [ ] Unit tests 
 
 Controller Features:
@@ -382,13 +381,16 @@ Install [Scratch 2 Offline Editor](https://scratch.mit.edu/scratch2download). Im
 ### ScratchX
 ScratchX [Javascript Extension](https://github.com/LLK/scratchx/wiki) is supported. Scratch Device Plugin ( [Scratch Extensions Browser Plugin](https://scratch.mit.edu/info/ext_download) ) is not required.
 
-Open ScratchX link with reference to this extension: http://scratchx.org/?url=https://pgillich.github.io/ESP4S2/js/extension.js .
+Open ScratchX link with reference to this extension:
+
+http://scratchx.org/?url=https://pgillich.github.io/ESP4S2/js/extension.js
 
 It's possible to provide this extension locally, using a simple HTTP server. Example for running local HTTP web server from parent of cloned Git repository:
 
 `ESP4S2/src/CorsHTTPServer.py 80`
 
 In this case, the ScratchX link should be like:
+
 http://scratchx.org/?url=http://localhost/ESP4S2/js/extension.js
 
 It is possible to provide ScratchX locally (offline). In order to achieve it, ScratchX Git repository must have, example for cloning:
@@ -398,6 +400,7 @@ cd scratchx
 python -m SimpleHTTPServer
 ```
 In this case, the ScratchX link should be like:
+
 http://localhost:8000/?url=http://localhost/ESP4S2/js/extension.js
 
 ## RoboRemo
@@ -489,7 +492,22 @@ Click on ![Stop](doc/stop-sign-small.png) to stop all pins.
 ### DC motor project
 This project demonstrates DC motor control using PWM and H-bridge. 
 
-## Scratch Advanced Programer's Guide
+## Simplified blocks
+
+Blocks for full functionality looks too complex for young children. Simplified blocks are created for them in order to have experience on microcontrollers. These Blocks have some limitations, for example:
+* Only one Controller is supported.
+* Waiting for next command (`W`) is not supported.
+* Only ScratchX is supported
+
+The `Set network` block is extended by the Controller name. The `E`/`W` timing and Controller name fields are removed from other blocks. Example blocks:
+
+![initNet_S](doc/initNet_S.png)
+
+![digitalOut_S](doc/digitalOut_S.png)
+
+ScratchX URL link with reference to the simplified extension: 
+
+http://scratchx.org/?url=https://pgillich.github.io/ESP4S2/js/extension1.js
 
 
 ## Controller Command Reference

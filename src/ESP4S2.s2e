@@ -2,6 +2,7 @@
 	"extensionPort": 58266,
 	"blockSpecs": [
 		[" ", "Set network %s / %n", "initNet", "192.168.10.0", "24"],
+		[" ", "Reset On %s", "reset", "tank-tower"],
 		[" ", "%m.execWait On %s pin %n mode= %m.mode", "pinMode", "E", "met", 4, "Digital Input"],
 		[" ", "%m.execWait On %s pin %n digital= %m.highLow", "digitalWrite", "E", "tank-tower", 4, "High"],
 		[" ", "%m.execWait On %s pin %n PWM= %n", "analogWrite", "E", "tank-tower", 5, 100],

@@ -271,6 +271,7 @@ class EspSender(threading.Thread):
         self.out_queue.put(self.buildOut(cmd, cmd_ts, exec_wait))
 
     def send2esp(self, command):
+        # print("EspSender.send2esp "+command)
         self.conf.espNetHandler.send2esp(self.device, self.ip, command)
 
         self.last_send = time.time()
@@ -320,6 +321,7 @@ class EspHandler(threading.Thread):
         return {"command": command, "pins": pins, "exec_wait": exec_wait}
 
     def putIn(self, command, pins, exec_wait):
+        # print("putIn "+command)
         self.in_queue.put(self.buildIn(command, pins, exec_wait))
 
     def getDeviceId(self):
@@ -343,7 +345,7 @@ class EspHandler(threading.Thread):
     def sendIfIn(self, command, pins, exec_wait):
         force_send = False
 
-        if command == "reset_all":
+        if command == "reset_all" or command == "reset":
             for p in self.pin_last_command:
                 self.pin_last_command[p] = None
             force_send = True
@@ -476,10 +478,15 @@ def makeScratchHandler(conf):
             device.putIn(command, [pin], exec_wait)
             return self.conf.RESPONSE_OK
 
+        def reset(self, device):
+            command = "reset"
+            self.conf.espHandlersByDevice[device.device].putIn(command, [], True)
+            return self.conf.RESPONSE_OK
+
         def reset_all(self):
             command = "reset_all"
-            for device_id in self.conf.espHandlersByDevice:
-                self.conf.espHandlersByDevice[device_id].putIn(command, [], True)
+            #for device_id in self.conf.espHandlersByDevice:
+            #    self.conf.espHandlersByDevice[device_id].putIn(command, [], True)
             return self.conf.RESPONSE_OK
 
         def initNet(self, net, maskBits):
@@ -521,6 +528,7 @@ def makeScratchHandler(conf):
 
                 if cmd == "reset_all":
                     resp_body = self.reset_all()
+                    pass
                 elif cmd == "initNet":
                     resp_body = self.initNet(command[2], command[3])
                 elif cmd == "poll":
@@ -528,63 +536,76 @@ def makeScratchHandler(conf):
                 elif len(command) > 2:
                     print pprint.pformat(command)
                     exec_wait = command[2].lower().startswith("e")
-                    pin = int(command[4])
-                    device_name = command[3]
+
+                    if cmd == "reset":
+                        device_name = command[2]
+                    else:
+                        device_name = command[3]
+
+                    device_id = None
                     if device_name in self.conf.name2id:
                         device_id = self.conf.name2id[device_name]
-                    else:
+                    elif device_name.isdigit():
                         device_id = int(device_name)
-                    device = self.getOrCreateDevice(device_id)
+
+                    device = None
+                    if device_id is not None:
+                        device = self.getOrCreateDevice(device_id)
+
                     if device is None:
-                        print "#" + command[3] + " UNKNOWN"
+                        print "#" + device_name + " UNKNOWN"
                         resp_body = "Unknown device"
                     else:
                         # print "cmd="+cmd
-                        if cmd == "pinOutput":
-                            resp_body = self.pinMode(
-                                device, pin, self.conf.OUTPUT, exec_wait)
-                        elif cmd == "pinInput":
-                            resp_body = self.pinMode(device, pin, self.conf.INPUT, exec_wait)
-                        elif cmd == "pinHigh":
-                            resp_body = self.digitalWrite(
-                                device, pin, self.conf.HIGH, exec_wait)
-                        elif cmd == "pinLow":
-                            resp_body = self.digitalWrite(
-                                device, pin, self.conf.LOW, exec_wait)
-                        elif cmd == "pinMode":
-                            resp_body = self.pinMode(
-                                device, pin, self.getFirmataPinMode(command[5]), exec_wait)
-                        elif cmd == "digitalWrite":
-                            if "high" == command[5].lower():
+                        if cmd == "reset":
+                            resp_body = self.reset(device)
+                        else:
+                            pin = int(command[4])
+                            if cmd == "pinOutput":
+                                resp_body = self.pinMode(
+                                    device, pin, self.conf.OUTPUT, exec_wait)
+                            elif cmd == "pinInput":
+                                resp_body = self.pinMode(device, pin, self.conf.INPUT, exec_wait)
+                            elif cmd == "pinHigh":
                                 resp_body = self.digitalWrite(
                                     device, pin, self.conf.HIGH, exec_wait)
-                            else:
+                            elif cmd == "pinLow":
                                 resp_body = self.digitalWrite(
                                     device, pin, self.conf.LOW, exec_wait)
-                        elif cmd == "analogWrite":
-                            resp_body = self.analogWrite(
-                                device, pin, int(command[5]), exec_wait)
-                        elif cmd == "analogPairWrite":
-                            resp_body = self.analogPairWrite(device, pin, int(
-                                command[5]), int(command[6]), exec_wait)
-                        elif cmd == "tankWrite":
-                            resp_body = self.tankWrite(device, pin, int(
-                                command[5]), int(command[6]), int(command[7]), int(command[8]), int(command[9]), exec_wait)
-                        elif cmd == "servoWrite":
-                            resp_body = self.servoWrite(
-                                device, pin, int(command[5]), exec_wait)
-                        elif cmd == "print":
-                            resp_body = self.printText(
-                                device, pin, command[5], exec_wait)
-                        elif cmd == "digitalRead":
-                            resp_body = self.digitalRead(
-                                device, pin)
-                        elif cmd == "analogRead":
-                            resp_body = self.analogRead(
-                                device, pin)
-                        else:
-                            resp_code = 400
-                            resp_body = "unknown command: " + str(command)
+                            elif cmd == "pinMode":
+                                resp_body = self.pinMode(
+                                    device, pin, self.getFirmataPinMode(command[5]), exec_wait)
+                            elif cmd == "digitalWrite":
+                                if "high" == command[5].lower():
+                                    resp_body = self.digitalWrite(
+                                        device, pin, self.conf.HIGH, exec_wait)
+                                else:
+                                    resp_body = self.digitalWrite(
+                                        device, pin, self.conf.LOW, exec_wait)
+                            elif cmd == "analogWrite":
+                                resp_body = self.analogWrite(
+                                    device, pin, int(command[5]), exec_wait)
+                            elif cmd == "analogPairWrite":
+                                resp_body = self.analogPairWrite(device, pin, int(
+                                    command[5]), int(command[6]), exec_wait)
+                            elif cmd == "tankWrite":
+                                resp_body = self.tankWrite(device, pin, int(
+                                    command[5]), int(command[6]), int(command[7]), int(command[8]), int(command[9]), exec_wait)
+                            elif cmd == "servoWrite":
+                                resp_body = self.servoWrite(
+                                    device, pin, int(command[5]), exec_wait)
+                            elif cmd == "print":
+                                resp_body = self.printText(
+                                    device, pin, command[5], exec_wait)
+                            elif cmd == "digitalRead":
+                                resp_body = self.digitalRead(
+                                    device, pin)
+                            elif cmd == "analogRead":
+                                resp_body = self.analogRead(
+                                    device, pin)
+                            else:
+                                resp_code = 400
+                                resp_body = "unknown command: " + str(command)
                 else:
                     resp_code = 400
                     resp_body = "unknown command: " + str(command)
@@ -643,6 +664,8 @@ class EspNetHandler(threading.Thread):
             self.debugAck = self.conf.ESP_FORCE_ACK_DEBUG
 
     def send2esp(self, device, ip, command):
+        # print("EspNetHandler.send2esp "+command)
+
         if command == self.conf.ESP_POLL_CMD:
             # sys.stdout.write(':')
             pass
