@@ -37,6 +37,7 @@
     		url: uri,
     		crossDomain: true,
     	}).done( function(data, textStatus, jqXHR) {
+        	console.log("done: "+data);
     		if (callback != null) {
     			callback(data);
     			return;
