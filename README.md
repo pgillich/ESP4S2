@@ -1,5 +1,13 @@
 ESP4S2 is a project on ESP8266 NodeMCU with control by MIT Scratch 2 or RoboRemo.
 -
+The development branch is `scratchx`, which contains new features, for example:
+* MIT Scratch support
+* Shorter Lua code
+* PWM, OLED support
+* Tank control in Scratch, too
+
+# TOC
+
   * [Introduction](#introduction)
     * [Feature List](#feature-list)
   * [Installation and Configuration](#installation-and-configuration)
